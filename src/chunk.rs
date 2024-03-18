@@ -18,6 +18,24 @@ impl From<OpCode> for u8 {
     }
 }
 
+pub struct Chunk {
+    code: Vec<u8>,
+}
+
+impl Chunk {
+    pub fn new() -> Self {
+        Self { code: Vec::new() }
+    }
+
+    pub fn write(&mut self, code: OpCode) {
+        self.code.push(code.into())
+    }
+
+    pub fn len(self) -> usize {
+        self.code.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -33,5 +51,12 @@ mod tests {
     #[case::opcode_return(OpCode::OpReturn, 0)]
     fn test_byte_from_opcode(#[case] from: OpCode, #[case] expected: u8) {
         assert_eq!(u8::from(from), expected)
+    }
+
+    #[rstest]
+    fn test_write_code_to_chunk() {
+        let mut chunk = Chunk::new();
+        chunk.write(OpCode::OpReturn);
+        assert_eq!(chunk.len(), 1)
     }
 }
