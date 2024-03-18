@@ -34,6 +34,10 @@ impl Chunk {
     pub fn len(self) -> usize {
         self.code.len()
     }
+
+    pub fn free(&mut self) {
+        self.code = Vec::new();
+    }
 }
 
 #[cfg(test)]
@@ -54,9 +58,16 @@ mod tests {
     }
 
     #[rstest]
-    fn test_write_code_to_chunk() {
+    fn test_write_opcode_to_chunk() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::OpReturn);
         assert_eq!(chunk.len(), 1)
+    }
+    #[rstest]
+    fn test_free_the_chunk() {
+        let mut chunk = Chunk::new();
+        chunk.write(OpCode::OpReturn);
+        chunk.free();
+        assert_eq!(chunk.len(), 0)
     }
 }
