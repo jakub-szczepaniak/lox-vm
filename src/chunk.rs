@@ -1,3 +1,4 @@
+use std::io::Write;
 #[derive(Debug, PartialEq)]
 pub enum OpCode {
     OpReturn = 0,
@@ -38,6 +39,22 @@ impl Chunk {
     pub fn free(&mut self) {
         self.code = Vec::new();
     }
+
+    pub fn disassemble(&self, output: &mut impl Write) {
+        writeln!(output, "====");
+        let mut offset: usize = 0;
+        while offset < self.code.len() {
+            offset = self.disassemble_instruction(offset, output);
+        }
+    }
+    fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
+        write!(output, "{offset:04} ");
+        let instruction: OpCode = self.code[offset].into();
+        let _ = match instruction {
+            OpCode::OpReturn => write!(output, "OP_RETURN"),
+        };
+        offset + 1
+    }
 }
 
 #[cfg(test)]
@@ -69,5 +86,16 @@ mod tests {
         chunk.write(OpCode::OpReturn);
         chunk.free();
         assert_eq!(chunk.len(), 0)
+    }
+    #[rstest]
+    #[case::debug_op_return(OpCode::OpReturn, b"====\n0000 OP_RETURN")]
+    fn test_dissasemble_the_chunk(#[case] actual: OpCode, #[case] expected: &[u8]) {
+        let mut output = Vec::new();
+        let mut chunk = Chunk::new();
+
+        chunk.write(actual);
+
+        chunk.disassemble(&mut output);
+        assert_eq!(output, expected)
     }
 }
