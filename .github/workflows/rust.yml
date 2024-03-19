@@ -1,0 +1,26 @@
+name: Test on push
+
+on:
+  push:
+    branches: ["master"]
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build the application
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Run the tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: nextest
+          args: run --all-features --profile ci
