@@ -28,7 +28,7 @@ impl Chunk {
         Self { code: Vec::new() }
     }
 
-    pub fn write(&mut self, code: OpCode) {
+    pub fn write_opcode(&mut self, code: OpCode) {
         self.code.push(code.into())
     }
 
@@ -77,13 +77,13 @@ mod tests {
     #[rstest]
     fn test_write_opcode_to_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write(OpCode::OpReturn);
+        chunk.write_opcode(OpCode::OpReturn);
         assert_eq!(chunk.len(), 1)
     }
     #[rstest]
     fn test_free_the_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write(OpCode::OpReturn);
+        chunk.write_opcode(OpCode::OpReturn);
         chunk.free();
         assert_eq!(chunk.len(), 0)
     }
@@ -97,7 +97,7 @@ mod tests {
         let mut output = Vec::new();
         let mut chunk = Chunk::new();
 
-        chunk.write(actual);
+        chunk.write_opcode(actual);
 
         chunk.disassemble(chunk_name, &mut output);
         assert_eq!(output, expected)
