@@ -1,4 +1,14 @@
+use std::io;
+
+use chunk::*;
+
 mod chunk;
 fn main() {
-    println!("Hello, world!");
+    let mut chunk = Chunk::new();
+
+    chunk.write(OpCode::OpReturn);
+
+    chunk.disassemble("test chunk", &mut io::stdout());
+
+    chunk.free();
 }

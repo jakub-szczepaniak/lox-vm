@@ -40,8 +40,8 @@ impl Chunk {
         self.code = Vec::new();
     }
 
-    pub fn disassemble(&self, output: &mut impl Write) {
-        writeln!(output, "====");
+    pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
+        writeln!(output, "=={}==", chunk_name.to_string());
         let mut offset: usize = 0;
         while offset < self.code.len() {
             offset = self.disassemble_instruction(offset, output);
@@ -51,7 +51,7 @@ impl Chunk {
         write!(output, "{offset:04} ");
         let instruction: OpCode = self.code[offset].into();
         let _ = match instruction {
-            OpCode::OpReturn => write!(output, "OP_RETURN"),
+            OpCode::OpReturn => writeln!(output, "OP_RETURN"),
         };
         offset + 1
     }
@@ -88,14 +88,18 @@ mod tests {
         assert_eq!(chunk.len(), 0)
     }
     #[rstest]
-    #[case::debug_op_return(OpCode::OpReturn, b"====\n0000 OP_RETURN")]
-    fn test_dissasemble_the_chunk(#[case] actual: OpCode, #[case] expected: &[u8]) {
+    #[case::debug_op_return(OpCode::OpReturn, "test", b"==test==\n0000 OP_RETURN\n")]
+    fn test_dissasemble_the_chunk(
+        #[case] actual: OpCode,
+        #[case] chunk_name: &str,
+        #[case] expected: &[u8],
+    ) {
         let mut output = Vec::new();
         let mut chunk = Chunk::new();
 
         chunk.write(actual);
 
-        chunk.disassemble(&mut output);
+        chunk.disassemble(chunk_name, &mut output);
         assert_eq!(output, expected)
     }
 }
