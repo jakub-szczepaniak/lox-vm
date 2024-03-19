@@ -41,14 +41,15 @@ impl Chunk {
     }
 
     pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
-        writeln!(output, "=={}==", chunk_name.to_string());
+        writeln!(output, "=={}==", chunk_name).unwrap();
+
         let mut offset: usize = 0;
         while offset < self.code.len() {
             offset = self.disassemble_instruction(offset, output);
         }
     }
     fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
-        write!(output, "{offset:04} ");
+        write!(output, "{offset:04} ").unwrap();
         let instruction: OpCode = self.code[offset].into();
         let _ = match instruction {
             OpCode::OpReturn => writeln!(output, "OP_RETURN"),
