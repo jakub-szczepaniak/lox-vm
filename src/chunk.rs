@@ -72,7 +72,8 @@ impl Chunk {
         instruction: &ChunkEntry,
         output: &mut impl Write,
     ) -> usize {
-        write!(output, "{offset:04} ").unwrap();
+        write!(output, "{offset:04} {:4} ", instruction.line).unwrap();
+
         match instruction.code {
             OpCode::OpReturn => self.simple_instruction("OP_RETURN", offset, output),
             OpCode::OpConstant(value) => {
@@ -129,16 +130,17 @@ mod tests {
     }
 
     #[rstest]
-    #[case::debug_op_return(OpCode::OpReturn, "test", b"==test==\n0000 OP_RETURN\n")]
+    #[case::debug_op_return(OpCode::OpReturn, 1233, "test", b"==test==\n0000 1233 OP_RETURN\n")]
     fn test_dissasemble_the_chunk(
         #[case] actual: OpCode,
+        #[case] line: usize,
         #[case] chunk_name: &str,
         #[case] expected: &[u8],
     ) {
         let mut output = Vec::new();
         let mut chunk = Chunk::new();
 
-        chunk.write_opcode(actual, 1233);
+        chunk.write_opcode(actual, line);
 
         chunk.disassemble(chunk_name, &mut output);
         assert_eq!(output, expected)
@@ -154,7 +156,7 @@ mod tests {
 
         assert_eq!(
             output,
-            b"==test chunk==\n0000 OP_CONSTANT         0 '12.4'\n"
+            b"==test chunk==\n0000  133 OP_CONSTANT         0 '12.4'\n"
         )
     }
 }
