@@ -34,15 +34,20 @@ impl ChunkEntry {
 
 pub struct Chunk {
     code: Vec<ChunkEntry>,
+    lines: Vec<(usize, usize)>,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self { code: Vec::new() }
+        Self {
+            code: Vec::new(),
+            lines: Vec::new(),
+        }
     }
 
     pub fn write_opcode(&mut self, code: OpCode, line: usize) {
-        self.code.push(ChunkEntry::new(code, line))
+        self.code.push(ChunkEntry::new(code, line));
+        self.add_line(line)
     }
 
     pub fn add_constant(&mut self, value: Value, line: usize) {
@@ -51,11 +56,32 @@ impl Chunk {
             code: constant,
             line,
         };
-        self.code.push(chunk_entry)
+        self.code.push(chunk_entry);
+        self.add_line(line)
     }
 
+    fn add_line(&mut self, line_number: usize) {
+        if let Some(last) = self.lines.last_mut() {
+            if last.1 == line_number {
+                last.0 += 1;
+                return;
+            }
+        }
+        self.lines.push((1, line_number))
+    }
+    fn get_line(&self, index: usize) -> Option<usize> {
+        let mut total_len: usize = 0;
+        for (len, value) in &self.lines {
+            total_len += *len;
+            if total_len > index {
+                return Some(*value);
+            }
+        }
+        None
+    }
     pub fn free(&mut self) {
         self.code = Vec::new();
+        self.lines = Vec::new();
     }
 
     pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
@@ -72,7 +98,13 @@ impl Chunk {
         instruction: &ChunkEntry,
         output: &mut impl Write,
     ) -> usize {
-        write!(output, "{offset:04} {:4} ", instruction.line).unwrap();
+        write!(output, "{offset:04}").unwrap();
+
+        if offset > 0 && self.get_line(offset) == self.get_line(offset - 1) {
+            write!(output, "    | ").unwrap();
+        } else {
+            write!(output, " {:4} ", self.get_line(offset).unwrap()).unwrap();
+        }
 
         match instruction.code {
             OpCode::OpReturn => self.simple_instruction("OP_RETURN", offset, output),
