@@ -3,13 +3,13 @@ use std::fmt::Display;
 use std::io::Write;
 #[derive(Debug, PartialEq, Clone)]
 pub enum OpCode {
-    OpConstant(Value),
-    OpNegate,
-    OpReturn,
-    OpAdd,
-    OpSubstract,
-    OpMultiply,
-    OpDivide,
+    Constant(Value),
+    Negate,
+    Return,
+    Add,
+    Substract,
+    Multiply,
+    Divide,
 }
 
 impl Display for OpCode {
@@ -25,9 +25,9 @@ pub struct ChunkEntry {
 impl Display for ChunkEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.code {
-            OpCode::OpReturn => Ok(()),
-            OpCode::OpConstant(val) => write!(f, "{}", val),
-            OpCode::OpNegate => Ok(()),
+            OpCode::Return => Ok(()),
+            OpCode::Constant(val) => write!(f, "{}", val),
+            OpCode::Negate => Ok(()),
             _ => Ok(()),
         }
     }
@@ -58,7 +58,7 @@ impl Chunk {
     }
 
     pub fn add_constant(&mut self, value: Value, line: usize) {
-        let constant = OpCode::OpConstant(value);
+        let constant = OpCode::Constant(value);
         let chunk_entry = ChunkEntry {
             code: constant,
             line,
@@ -109,13 +109,13 @@ impl Chunk {
         }
         let instruction = &self.code[offset];
         match instruction.code {
-            OpCode::OpReturn => self.simple_instruction("OP_RETURN", offset, output),
-            OpCode::OpNegate => self.simple_instruction("OP_NEGATE", offset, output),
-            OpCode::OpAdd => self.simple_instruction("OP_ADD", offset, output),
-            OpCode::OpSubstract => self.simple_instruction("OP_SUBSTRACT", offset, output),
-            OpCode::OpMultiply => self.simple_instruction("OP_MULTIPLY", offset, output),
-            OpCode::OpDivide => self.simple_instruction("OP_DIVIDE", offset, output),
-            OpCode::OpConstant(value) => {
+            OpCode::Return => self.simple_instruction("OP_RETURN", offset, output),
+            OpCode::Negate => self.simple_instruction("OP_NEGATE", offset, output),
+            OpCode::Add => self.simple_instruction("OP_ADD", offset, output),
+            OpCode::Substract => self.simple_instruction("OP_SUBSTRACT", offset, output),
+            OpCode::Multiply => self.simple_instruction("OP_MULTIPLY", offset, output),
+            OpCode::Divide => self.simple_instruction("OP_DIVIDE", offset, output),
+            OpCode::Constant(value) => {
                 self.constant_instruction("OP_CONSTANT", offset, value, output)
             }
         }
@@ -154,7 +154,7 @@ mod tests {
     #[rstest]
     fn test_write_opcode_to_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::OpReturn, 123);
+        chunk.write_opcode(OpCode::Return, 123);
         assert_eq!(chunk.code.len(), 1)
     }
 
@@ -168,14 +168,14 @@ mod tests {
     #[rstest]
     fn test_free_the_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::OpReturn, 23);
+        chunk.write_opcode(OpCode::Return, 23);
         chunk.add_constant(1.2, 43);
         chunk.free();
         assert_eq!(chunk.code.len(), 0)
     }
 
     #[rstest]
-    #[case::debug_op_return(OpCode::OpReturn, 1233, "test", b"==test==\n0000 1233 OP_RETURN\n")]
+    #[case::debug_op_return(OpCode::Return, 1233, "test", b"==test==\n0000 1233 OP_RETURN\n")]
     fn test_dissasemble_the_chunk(
         #[case] actual: OpCode,
         #[case] line: usize,
@@ -208,10 +208,10 @@ mod tests {
     #[rstest]
     fn test_reading_byte_from_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::OpReturn, 1);
+        chunk.write_opcode(OpCode::Return, 1);
 
         let result = chunk.read(0);
 
-        assert_eq!(result, OpCode::OpReturn)
+        assert_eq!(result, OpCode::Return)
     }
 }

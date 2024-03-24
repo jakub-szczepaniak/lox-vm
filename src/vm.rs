@@ -40,21 +40,21 @@ impl VM {
             }
             let instruction = self.read_opcode(chunk);
             match instruction {
-                OpCode::OpReturn => {
+                OpCode::Return => {
                     println!("{}", self.stack.pop().unwrap());
                     return InterpretResult::InterpretOK;
                 }
-                OpCode::OpConstant(v) => {
+                OpCode::Constant(v) => {
                     self.stack.push(v);
                 }
-                OpCode::OpNegate => {
+                OpCode::Negate => {
                     let val = self.stack.pop().unwrap();
                     self.stack.push(-val)
                 }
-                OpCode::OpAdd => self.binary_op(|a, b| a + b),
-                OpCode::OpSubstract => self.binary_op(|a, b| a - b),
-                OpCode::OpMultiply => self.binary_op(|a, b| a * b),
-                OpCode::OpDivide => {
+                OpCode::Add => self.binary_op(|a, b| a + b),
+                OpCode::Substract => self.binary_op(|a, b| a - b),
+                OpCode::Multiply => self.binary_op(|a, b| a * b),
+                OpCode::Divide => {
                     let result = self.divide_op();
 
                     if let Ok(exc) = result {
@@ -105,7 +105,8 @@ mod tests {
     fn test_run_the_chunk_by_vm() {
         let mut vm = VM::new();
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::OpReturn, 1);
+        chunk.add_constant(1.0, 1);
+        chunk.write_opcode(OpCode::Return, 1);
 
         let result = vm.run(&chunk);
 
@@ -117,6 +118,6 @@ mod tests {
         let mut vm = VM::new();
         let mut chunk = Chunk::new();
         chunk.add_constant(12.0, 1);
-        chunk.write_opcode(OpCode::OpNegate, 2);
+        chunk.write_opcode(OpCode::Negate, 2);
     }
 }
