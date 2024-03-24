@@ -1,4 +1,5 @@
-use crate::chunk::*;
+use crate::{chunk::*, value::Value};
+use std::io::*;
 
 #[derive(PartialEq, Debug)]
 pub enum InterpretResult {
@@ -9,11 +10,15 @@ pub enum InterpretResult {
 
 pub struct VM {
     ip: usize,
+    stack: Vec<Value>,
 }
 
 impl VM {
     pub fn new() -> Self {
-        Self { ip: 0 }
+        Self {
+            ip: 0,
+            stack: Vec::new(),
+        }
     }
 
     pub fn free(&self) {}
@@ -26,12 +31,21 @@ impl VM {
     fn run(&mut self, chunk: &Chunk) -> InterpretResult {
         loop {
             #[cfg(feature = "debug_trace_execution")]
-            chunk.disassemble_instruction(self.ip, &mut std::io::stdout());
+            {
+                writeln!(&mut std::io::stdout(), "       ").unwrap();
+                for value in &self.stack {
+                    writeln!(&mut std::io::stdout(), "[ {value} ]").unwrap();
+                }
+                chunk.disassemble_instruction(self.ip, &mut std::io::stdout());
+            }
             let instruction = self.read_opcode(chunk);
             match instruction {
-                OpCode::OpReturn => return InterpretResult::InterpretOK,
+                OpCode::OpReturn => {
+                    println!("{}", self.stack.pop().unwrap());
+                    return InterpretResult::InterpretOK;
+                }
                 OpCode::OpConstant(v) => {
-                    println!("{v}");
+                    self.stack.push(v);
                 }
             }
         }
