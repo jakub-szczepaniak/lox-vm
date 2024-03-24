@@ -1,7 +1,7 @@
 use crate::value::*;
 use std::fmt::Display;
 use std::io::Write;
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum OpCode {
     OpConstant(Value),
     OpReturn,
@@ -131,10 +131,16 @@ impl Chunk {
         writeln!(output, "'").unwrap();
         offset + 2
     }
+
+    pub fn read(&self, index: usize) -> OpCode {
+        self.code[index].code.clone()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::result;
+
     use super::*;
     use rstest::*;
 
@@ -190,5 +196,15 @@ mod tests {
             output,
             b"==test chunk==\n0000  133 OP_CONSTANT         0 '12.4'\n"
         )
+    }
+
+    #[rstest]
+    fn test_reading_byte_from_chunk() {
+        let mut chunk = Chunk::new();
+        chunk.write_opcode(OpCode::OpReturn, 1);
+
+        let result = chunk.read(0);
+
+        assert_eq!(result, OpCode::OpReturn)
     }
 }
