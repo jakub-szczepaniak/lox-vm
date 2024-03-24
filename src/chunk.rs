@@ -12,7 +12,7 @@ impl Display for OpCode {
         write!(f, "OpCode")
     }
 }
-struct ChunkEntry {
+pub struct ChunkEntry {
     code: OpCode,
     line: usize,
 }
@@ -88,16 +88,11 @@ impl Chunk {
         writeln!(output, "=={}==", chunk_name).unwrap();
 
         let mut offset: usize = 0;
-        for instruction in &self.code {
-            offset = self.disassemble_instruction(offset, instruction, output)
+        while offset < self.code.len() {
+            offset = self.disassemble_instruction(offset, output)
         }
     }
-    fn disassemble_instruction(
-        &self,
-        offset: usize,
-        instruction: &ChunkEntry,
-        output: &mut impl Write,
-    ) -> usize {
+    pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
         write!(output, "{offset:04}").unwrap();
 
         if offset > 0 && self.get_line(offset) == self.get_line(offset - 1) {
@@ -105,7 +100,7 @@ impl Chunk {
         } else {
             write!(output, " {:4} ", self.get_line(offset).unwrap()).unwrap();
         }
-
+        let instruction = &self.code[offset];
         match instruction.code {
             OpCode::OpReturn => self.simple_instruction("OP_RETURN", offset, output),
             OpCode::OpConstant(value) => {
