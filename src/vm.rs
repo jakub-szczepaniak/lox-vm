@@ -47,8 +47,46 @@ impl VM {
                 OpCode::OpConstant(v) => {
                     self.stack.push(v);
                 }
+                OpCode::OpNegate => {
+                    let val = self.stack.pop().unwrap();
+                    self.stack.push(-val)
+                }
+                OpCode::OpAdd => self.binary_op(|a, b| a + b),
+                OpCode::OpSubstract => self.binary_op(|a, b| a - b),
+                OpCode::OpMultiply => self.binary_op(|a, b| a * b),
+                OpCode::OpDivide => {
+                    let result = self.divide_op();
+
+                    if let Ok(exc) = result {
+                        match exc {
+                            InterpretResult::InterpretOK => {}
+                            InterpretResult::InterpretRuntimeError => {
+                                return InterpretResult::InterpretRuntimeError
+                            }
+                            _ => {}
+                        }
+                    }
+                }
             }
         }
+    }
+
+    fn divide_op(&mut self) -> Result<InterpretResult> {
+        let b = self.stack.pop().unwrap();
+        match b {
+            0.0 => Ok(InterpretResult::InterpretRuntimeError),
+            _ => {
+                let a = self.stack.pop().unwrap();
+                self.stack.push(a / b);
+                Ok(InterpretResult::InterpretOK)
+            }
+        }
+    }
+
+    fn binary_op(&mut self, operation: fn(a: Value, b: Value) -> Value) {
+        let b = self.stack.pop().unwrap();
+        let a = self.stack.pop().unwrap();
+        self.stack.push(operation(a, b))
     }
 
     fn read_opcode(&mut self, chunk: &Chunk) -> OpCode {
@@ -72,5 +110,13 @@ mod tests {
         let result = vm.run(&chunk);
 
         assert_eq!(result, InterpretResult::InterpretOK)
+    }
+
+    #[rstest]
+    fn test_aritmethic_operations_on_stack() {
+        let mut vm = VM::new();
+        let mut chunk = Chunk::new();
+        chunk.add_constant(12.0, 1);
+        chunk.write_opcode(OpCode::OpNegate, 2);
     }
 }

@@ -4,7 +4,12 @@ use std::io::Write;
 #[derive(Debug, PartialEq, Clone)]
 pub enum OpCode {
     OpConstant(Value),
+    OpNegate,
     OpReturn,
+    OpAdd,
+    OpSubstract,
+    OpMultiply,
+    OpDivide,
 }
 
 impl Display for OpCode {
@@ -22,6 +27,8 @@ impl Display for ChunkEntry {
         match self.code {
             OpCode::OpReturn => Ok(()),
             OpCode::OpConstant(val) => write!(f, "{}", val),
+            OpCode::OpNegate => Ok(()),
+            _ => Ok(()),
         }
     }
 }
@@ -103,6 +110,11 @@ impl Chunk {
         let instruction = &self.code[offset];
         match instruction.code {
             OpCode::OpReturn => self.simple_instruction("OP_RETURN", offset, output),
+            OpCode::OpNegate => self.simple_instruction("OP_NEGATE", offset, output),
+            OpCode::OpAdd => self.simple_instruction("OP_ADD", offset, output),
+            OpCode::OpSubstract => self.simple_instruction("OP_SUBSTRACT", offset, output),
+            OpCode::OpMultiply => self.simple_instruction("OP_MULTIPLY", offset, output),
+            OpCode::OpDivide => self.simple_instruction("OP_DIVIDE", offset, output),
             OpCode::OpConstant(value) => {
                 self.constant_instruction("OP_CONSTANT", offset, value, output)
             }
