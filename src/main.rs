@@ -1,25 +1,52 @@
+use std::{
+    io::{self, stdout, BufRead, Write},
+    path::PathBuf,
+};
+
 use chunk::*;
-use std::io;
 use vm::*;
 
 mod chunk;
 mod value;
 mod vm;
-fn main() {
-    let mut vm = VM::new();
-    let mut chunk = Chunk::new();
+use clap::Parser;
 
-    chunk.add_constant(14.0, 123);
-    chunk.add_constant(0.1, 2);
-    chunk.write_opcode(OpCode::Divide, 124);
-    chunk.write_opcode(OpCode::Return, 133);
-    //chunk.disassemble("test chunk", &mut io::stdout());
-    let result = vm.interpret(&chunk);
-    match result {
-        InterpretResult::InterpretRuntimeError => println!("Runtime error"),
-        _ => println!("OK"),
+#[derive(Parser)]
+#[command(version, about, long_about= None)]
+struct Cli {
+    //path to .lox file for compilation
+    filename: Option<PathBuf>,
+}
+
+fn main() {
+    let vm = VM::new();
+
+    let cli = Cli::parse();
+
+    if let Some(filename) = cli.filename {
+        println!("{}", filename.to_str().unwrap())
+    } else {
+        println!("Starting Lox Repl");
+        repl(&vm);
     }
-    chunk.free();
 
     vm.free();
+}
+fn repl(vm: &VM) {
+    let stdin = io::stdin();
+    print!("lox:>");
+    let _ = stdout().flush();
+    for line in stdin.lock().lines() {
+        if let Ok(line) = line {
+            if line.is_empty() {
+                break;
+            }
+            println!("{line}")
+            // let _ = vm.interpret(&line);
+        } else {
+            break;
+        }
+        print!("lox:>");
+        let _ = stdout().flush();
+    }
 }
