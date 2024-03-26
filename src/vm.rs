@@ -1,4 +1,4 @@
-use crate::{chunk::*, value::Value};
+use crate::{chunk::*, compiler::*, value::Value};
 use std::io::*;
 
 #[derive(PartialEq, Debug)]
@@ -23,9 +23,13 @@ impl VM {
 
     pub fn free(&self) {}
 
-    pub fn interpret(&mut self, chunk: &Chunk) -> InterpretResult {
+    pub fn interpret(&mut self, source: &str) -> InterpretResult {
         self.ip = 0;
-        self.run(chunk)
+
+        let compiler = Compiler::new();
+        compiler.compile(source.to_string());
+
+        InterpretResult::InterpretOK
     }
 
     fn run(&mut self, chunk: &Chunk) -> InterpretResult {

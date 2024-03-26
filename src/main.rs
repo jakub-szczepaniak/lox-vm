@@ -7,6 +7,8 @@ use chunk::*;
 use vm::*;
 
 mod chunk;
+mod compiler;
+mod scanner;
 mod value;
 mod vm;
 use clap::Parser;
