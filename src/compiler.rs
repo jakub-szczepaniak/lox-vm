@@ -8,7 +8,10 @@ impl Compiler {
     }
 
     pub fn compile(&self, source: String) {
-        let mut scanner = Scanner::new(source);
+        let mut scanner = Scanner {
+            source: &source,
+            tokens: Vec::new(),
+        };
         scanner.tokenize();
         for token in &scanner.tokens {
             println!("{}", token);

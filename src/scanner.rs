@@ -1,17 +1,32 @@
 use clap::builder::Str;
-use nom::{character::complete::char, multi::many0};
-use std::{fmt::Display, net::ToSocketAddrs};
+use nom::{
+    branch::alt,
+    character::complete::{char, line_ending, multispace0},
+    combinator::map,
+    error::Error,
+    multi::many0,
+    IResult,
+};
+use std::fmt::Display;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     EndOfFile,
+    Plus,
+    Minus,
 }
 
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+        match self {
+            TokenType::EndOfFile => write!(f, "EndOfFile"),
+            TokenType::Plus => write!(f, "Plus"),
+            TokenType::Minus => write!(f, "Minus"),
+            _ => write!(f, ""),
+        }
     }
 }
+#[derive(Clone)]
 pub struct Token {
     ttype: TokenType,
     line: usize,
@@ -19,11 +34,11 @@ pub struct Token {
 }
 
 impl Token {
-    fn new(ttype: TokenType, line: usize, lexeme: &str) -> Self {
+    fn new(ttype: TokenType, line: usize, lexeme: String) -> Self {
         Self {
             ttype,
             line,
-            lexeme: lexeme.to_string(),
+            lexeme,
         }
     }
 }
@@ -34,34 +49,49 @@ impl Display for Token {
     }
 }
 
-pub struct Scanner {
-    source: String,
+pub struct Scanner<'a> {
+    pub source: &'a str,
     pub tokens: Vec<Token>,
 }
 
-impl Scanner {
-    pub fn new(source: String) -> Self {
-        Self {
-            source,
-            tokens: Vec::new(),
-        }
-    }
-
+impl Scanner<'_> {
     pub fn tokenize(&mut self) {
-        self.tokens.push(Token::new(TokenType::EndOfFile, 0, ""))
+        let result: IResult<&str, Token> = alt((
+            map(char('+'), |c| {
+                Token::new(TokenType::Plus, 0, format!("{}", c))
+            }),
+            map(char('-'), |c| {
+                Token::new(TokenType::Minus, 0, format!("{}", c))
+            }),
+        ))(self.source);
+
+        match result {
+            Ok((rest, token)) => self.tokens.push(token),
+            Err(e) => {}
+        }
+        self.tokens
+            .push(Token::new(TokenType::EndOfFile, 0, "".to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use rstest::*;
 
     #[rstest]
-    fn test_empty_line_eof_token() {
-        let mut scanner = Scanner::new("".to_string());
+    #[case::test_empty_line_eof_token("", TokenType::EndOfFile)]
+    #[case::test_plus_token("+", TokenType::Plus)]
+    #[case::test_minus_token("-", TokenType::Minus)]
+    fn test_single_char_tokens(#[case] line: &str, #[case] expected: TokenType) {
+        let mut scanner = Scanner {
+            source: line,
+            tokens: Vec::new(),
+        };
 
         scanner.tokenize();
-        assert_eq!(scanner.tokens[0].ttype, TokenType::EndOfFile)
+
+        assert_eq!(scanner.tokens[0].ttype, expected)
     }
 }
