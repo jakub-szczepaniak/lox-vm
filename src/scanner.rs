@@ -9,7 +9,7 @@ use nom::{
 };
 use std::fmt::Display;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
     Plus,
@@ -57,20 +57,22 @@ pub struct Scanner<'a> {
 impl Scanner<'_> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Token> = alt((
-            map(char('+'), |c| {
-                Token::new(TokenType::Plus, 0, format!("{}", c))
-            }),
-            map(char('-'), |c| {
-                Token::new(TokenType::Minus, 0, format!("{}", c))
-            }),
+            Scanner::single_char('+', TokenType::Plus),
+            Scanner::single_char('-', TokenType::Minus),
         ))(self.source);
 
         match result {
-            Ok((rest, token)) => self.tokens.push(token),
-            Err(e) => {}
+            Ok((_, token)) => self.tokens.push(token),
+            Err(_e) => {}
         }
         self.tokens
             .push(Token::new(TokenType::EndOfFile, 0, "".to_string()))
+    }
+    fn single_char(single: char, ttype: TokenType) -> impl Fn(&str) -> IResult<&str, Token> {
+        move |input| {
+            let (input, _) = char(single)(input)?;
+            Ok((input, Token::new(ttype, 0, format!("{}", single))))
+        }
     }
 }
 
