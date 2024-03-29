@@ -9,6 +9,9 @@ impl Compiler {
 
     pub fn compile(&self, source: String) {
         let mut scanner = Scanner::new(source);
-        let tokens = scanner.tokenize();
+        scanner.tokenize();
+        for token in &scanner.tokens {
+            println!("{}", token);
+        }
     }
 }

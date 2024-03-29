@@ -36,7 +36,7 @@ impl Display for Token {
 
 pub struct Scanner {
     source: String,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
 }
 
 impl Scanner {

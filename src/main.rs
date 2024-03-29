@@ -21,7 +21,7 @@ struct Cli {
 }
 
 fn main() {
-    let vm = VM::new();
+    let mut vm = VM::new();
 
     let cli = Cli::parse();
 
@@ -29,12 +29,12 @@ fn main() {
         println!("{}", filename.to_str().unwrap())
     } else {
         println!("Starting Lox Repl");
-        repl(&vm);
+        repl(&mut vm);
     }
 
     vm.free();
 }
-fn repl(vm: &VM) {
+fn repl(vm: &mut VM) {
     let stdin = io::stdin();
     print!("lox:>");
     let _ = stdout().flush();
@@ -43,8 +43,8 @@ fn repl(vm: &VM) {
             if line.is_empty() {
                 break;
             }
-            println!("{line}")
-            // let _ = vm.interpret(&line);
+            println!("{line}");
+            let _ = vm.interpret(&line);
         } else {
             break;
         }
