@@ -55,24 +55,36 @@ pub struct Scanner<'a> {
     line: usize,
 }
 
-impl Scanner<'_> {
+impl<'a> Scanner<'a> {
+    pub fn new(source: &str) -> Scanner {
+        Scanner {
+            source,
+            tokens: Vec::new(),
+            line: 1,
+        }
+    }
+
     pub fn tokenize(&mut self) {
-        let result: IResult<&str, Token> = alt((
-            Scanner::single_char('+', TokenType::Plus),
-            Scanner::single_char('-', TokenType::Minus),
-        ))(self.source);
+        let result: IResult<&str, Vec<Token>> = many0(alt((
+            self.single_char('+', TokenType::Plus),
+            self.single_char('-', TokenType::Minus),
+        )))(self.source);
 
         match result {
-            Ok((_, token)) => self.tokens.push(token),
+            Ok((_, token)) => self.tokens = token,
             Err(_e) => {}
         }
         self.tokens
-            .push(Token::new(TokenType::EndOfFile, 0, "".to_string()))
+            .push(Token::new(TokenType::EndOfFile, self.line, "".to_string()))
     }
-    fn single_char(single: char, ttype: TokenType) -> impl Fn(&str) -> IResult<&str, Token> {
+    fn single_char(
+        &self,
+        single: char,
+        ttype: TokenType,
+    ) -> impl Fn(&str) -> IResult<&str, Token> + '_ {
         move |input| {
             let (input, _) = char(single)(input)?;
-            Ok((input, Token::new(ttype, 0, format!("{}", single))))
+            Ok((input, Token::new(ttype, self.line, format!("{}", single))))
         }
     }
 }
