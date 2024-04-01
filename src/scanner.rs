@@ -21,14 +21,30 @@ macro_rules! operand_token {
 
 operand_token!(plus_operator, "+", TT::Plus);
 operand_token!(minus_operator, "-", TT::Minus);
-operand_token!(l_paren_operator, "(", TT::Left_Paren);
+operand_token!(l_paren_operator, "(", TT::LeftParen);
+operand_token!(r_paren_operator, ")", TT::RightParen);
+operand_token!(l_bracket_operator, "{", TT::LeftBracket);
+operand_token!(r_bracket_operator, "}", TT::RightBracket);
+operand_token!(star_operator, "*", TT::Star);
+operand_token!(slash_operator, "/", TT::Slash);
+operand_token!(semicolon_operator, ";", TT::Semicolon);
+operand_token!(dot_operator, ".", TT::Dot);
+operand_token!(comma_operator, ",", TT::Comma);
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
     Plus,
     Minus,
-    Left_Paren,
+    LeftParen,
+    RightParen,
+    LeftBracket,
+    RightBracket,
+    Semicolon,
+    Comma,
+    Dot,
+    Slash,
+    Star,
 }
 
 impl Display for TT {
@@ -37,7 +53,15 @@ impl Display for TT {
             TT::EndOfFile => write!(f, "EndOfFile"),
             TT::Plus => write!(f, "Plus"),
             TT::Minus => write!(f, "Minus"),
-            TT::Left_Paren => write!(f, "LeftParen"),
+            TT::LeftParen => write!(f, "LeftParen"),
+            TT::RightParen => write!(f, "RightParen"),
+            TT::LeftBracket => write!(f, "LeftBracket"),
+            TT::RightBracket => write!(f, "RightBracket"),
+            TT::Comma => write!(f, ","),
+            TT::Dot => write!(f, "."),
+            TT::Semicolon => write!(f, ";"),
+            TT::Slash => write!(f, "/"),
+            TT::Star => write!(f, "*"),
             _ => write!(f, ""),
         }
     }
@@ -85,7 +109,19 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((plus_operator, minus_operator, l_paren_operator)),
+            alt((
+                plus_operator,
+                minus_operator,
+                l_paren_operator,
+                r_paren_operator,
+                l_bracket_operator,
+                r_bracket_operator,
+                comma_operator,
+                star_operator,
+                slash_operator,
+                dot_operator,
+                semicolon_operator,
+            )),
             space0,
         ))(self.source);
 
@@ -101,8 +137,6 @@ impl<'a> Scanner<'a> {
 #[cfg(test)]
 mod tests {
 
-    use std::iter::Scan;
-
     use super::*;
     use rstest::*;
 
@@ -110,7 +144,16 @@ mod tests {
     #[case::test_empty_line_eof_token("", TT::EndOfFile)]
     #[case::test_plus_token("+", TT::Plus)]
     #[case::test_minus_token("-", TT::Minus)]
-    #[case::test_left_paren_token("(", TT::Left_Paren)]
+    #[case::test_left_paren_token("(", TT::LeftParen)]
+    #[case::test_right_paren_token(")", TT::RightParen)]
+    #[case::test_left_bracket_token("{", TT::LeftBracket)]
+    #[case::test_right_bracket_token("}", TT::RightBracket)]
+    #[case::test_star_token("*", TT::Star)]
+    #[case::test_dot_token(".", TT::Dot)]
+    #[case::test_slash_token("/", TT::Slash)]
+    #[case::test_comma_token(",", TT::Comma)]
+    #[case::test_semicolon_token(";", TT::Semicolon)]
+
     fn test_single_char_tokens(#[case] line: &str, #[case] expected: TT) {
         let mut scanner = Scanner::new(line);
 
