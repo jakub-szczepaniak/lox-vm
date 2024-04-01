@@ -67,6 +67,11 @@ fn equal_tokens(input: &str) -> IResult<&str, Token> {
     ))(input)
 }
 
+#[derive(Clone)]
+pub enum Literal {
+    String(String),
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
@@ -90,6 +95,8 @@ pub enum TokenType {
     GreaterEquals,
     Less,
     LessEquals,
+    //
+    String,
 }
 
 impl Display for TT {
@@ -107,11 +114,11 @@ impl Display for TT {
             TT::Semicolon => write!(f, ";"),
             TT::Slash => write!(f, "/"),
             TT::Star => write!(f, "*"),
-            TT::Bang => write!(f, "!"),
-            TT::BangEquals => write!(f, "!="),
-            TT::Equals => write!(f, "=="),
-            TT::Assign => write!(f, "="),
-            TT::Greater => write!(f, ">"),
+            TT::Bang => write!(f, "Bang"),
+            TT::BangEquals => write!(f, "BangEquals"),
+            TT::Equals => write!(f, "Equals"),
+            TT::Assign => write!(f, "Assign"),
+            TT::Greater => write!(f, "Greater"),
             _ => write!(f, ""),
         }
     }
@@ -121,6 +128,7 @@ pub struct Token {
     ttype: TT,
     line: usize,
     lexeme: String,
+    literal: Option<Literal>,
 }
 
 impl Token {
@@ -129,6 +137,15 @@ impl Token {
             ttype,
             line,
             lexeme,
+            literal: None,
+        }
+    }
+    fn new_string(lexeme: String) -> Self {
+        Self {
+            ttype: TT::String,
+            line: 1,
+            lexeme: lexeme.clone(),
+            literal: Some(Literal::String(lexeme)),
         }
     }
 }
