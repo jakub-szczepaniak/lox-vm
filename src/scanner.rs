@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{char, line_ending, multispace0},
+    character::complete::{line_ending, space0},
     combinator::map,
-    error::Error,
     multi::many0,
+    sequence::delimited,
     IResult,
 };
 use std::fmt::Display;
@@ -19,14 +19,16 @@ macro_rules! operand_token {
     };
 }
 
-operand_token!(plus_operator, "+", TokenType::Plus);
-operand_token!(minus_operator, "-", TokenType::Minus);
+operand_token!(plus_operator, "+", TT::Plus);
+operand_token!(minus_operator, "-", TT::Minus);
+operand_token!(l_paren_operator, "(", TT::Left_Paren);
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
     Plus,
     Minus,
+    Left_Paren,
 }
 
 impl Display for TT {
@@ -35,6 +37,7 @@ impl Display for TT {
             TT::EndOfFile => write!(f, "EndOfFile"),
             TT::Plus => write!(f, "Plus"),
             TT::Minus => write!(f, "Minus"),
+            TT::Left_Paren => write!(f, "LeftParen"),
             _ => write!(f, ""),
         }
     }
@@ -80,8 +83,11 @@ impl<'a> Scanner<'a> {
     }
 
     pub fn tokenize(&mut self) {
-        let result: IResult<&str, Vec<Token>> =
-            many0(alt((plus_operator, minus_operator)))(self.source);
+        let result: IResult<&str, Vec<Token>> = many0(delimited(
+            space0,
+            alt((plus_operator, minus_operator, l_paren_operator)),
+            space0,
+        ))(self.source);
 
         match result {
             Ok((_, token)) => self.tokens = token,
@@ -95,6 +101,8 @@ impl<'a> Scanner<'a> {
 #[cfg(test)]
 mod tests {
 
+    use std::iter::Scan;
+
     use super::*;
     use rstest::*;
 
@@ -102,11 +110,31 @@ mod tests {
     #[case::test_empty_line_eof_token("", TT::EndOfFile)]
     #[case::test_plus_token("+", TT::Plus)]
     #[case::test_minus_token("-", TT::Minus)]
+    #[case::test_left_paren_token("(", TT::Left_Paren)]
     fn test_single_char_tokens(#[case] line: &str, #[case] expected: TT) {
         let mut scanner = Scanner::new(line);
 
         scanner.tokenize();
 
         assert_eq!(scanner.tokens[0].ttype, expected)
+    }
+    #[rstest]
+    #[case::test_ignore_leading_whitespace(" +", TT::Plus)]
+    #[case::test_ignore_trailing_whitespace("+   ", TT::Plus)]
+    fn test_ignore_whitespace_in_input(#[case] line: &str, #[case] expected: TT) {
+        let mut scanner = Scanner::new(line);
+        scanner.tokenize();
+
+        assert_eq!(scanner.tokens[0].ttype, expected)
+    }
+
+    #[rstest]
+    fn test_ignore_whitespace_between_input() {
+        let mut scanner = Scanner::new("+ -");
+        scanner.tokenize();
+
+        assert_eq!(scanner.tokens[0].ttype, TT::Plus);
+        assert_eq!(scanner.tokens[1].ttype, TT::Minus);
+        assert_eq!(scanner.tokens[2].ttype, TT::EndOfFile)
     }
 }
