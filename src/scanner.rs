@@ -31,6 +31,42 @@ operand_token!(semicolon_operator, ";", TT::Semicolon);
 operand_token!(dot_operator, ".", TT::Dot);
 operand_token!(comma_operator, ",", TT::Comma);
 
+fn operand_tokens(input: &str) -> IResult<&str, Token> {
+    alt((
+        plus_operator,
+        minus_operator,
+        l_paren_operator,
+        r_paren_operator,
+        l_bracket_operator,
+        r_bracket_operator,
+        comma_operator,
+        star_operator,
+        slash_operator,
+        dot_operator,
+        semicolon_operator,
+    ))(input)
+}
+
+fn equal_tokens(input: &str) -> IResult<&str, Token> {
+    use nom::character::complete::char;
+    alt((
+        map(tag("!="), |_| {
+            Token::new(TT::BangEquals, 1, "!=".to_string())
+        }),
+        map(char('!'), |_| Token::new(TT::Bang, 1, "!".to_string())),
+        map(tag("=="), |_| Token::new(TT::Equals, 1, "==".to_string())),
+        map(char('='), |_| Token::new(TT::Assign, 1, "=".to_string())),
+        map(tag(">="), |_| {
+            Token::new(TT::GreaterEquals, 1, ">=".to_string())
+        }),
+        map(char('>'), |_| Token::new(TT::Greater, 1, ">".to_string())),
+        map(tag("<="), |_| {
+            Token::new(TT::LessEquals, 1, "<=".to_string())
+        }),
+        map(char('<'), |_| Token::new(TT::Less, 1, "<".to_string())),
+    ))(input)
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
@@ -45,6 +81,15 @@ pub enum TokenType {
     Dot,
     Slash,
     Star,
+    //double letter tokens
+    Bang,
+    BangEquals,
+    Equals,
+    Assign,
+    Greater,
+    GreaterEquals,
+    Less,
+    LessEquals,
 }
 
 impl Display for TT {
@@ -62,6 +107,11 @@ impl Display for TT {
             TT::Semicolon => write!(f, ";"),
             TT::Slash => write!(f, "/"),
             TT::Star => write!(f, "*"),
+            TT::Bang => write!(f, "!"),
+            TT::BangEquals => write!(f, "!="),
+            TT::Equals => write!(f, "=="),
+            TT::Assign => write!(f, "="),
+            TT::Greater => write!(f, ">"),
             _ => write!(f, ""),
         }
     }
@@ -109,19 +159,7 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((
-                plus_operator,
-                minus_operator,
-                l_paren_operator,
-                r_paren_operator,
-                l_bracket_operator,
-                r_bracket_operator,
-                comma_operator,
-                star_operator,
-                slash_operator,
-                dot_operator,
-                semicolon_operator,
-            )),
+            alt((operand_tokens, equal_tokens)),
             space0,
         ))(self.source);
 
@@ -179,5 +217,21 @@ mod tests {
         assert_eq!(scanner.tokens[0].ttype, TT::Plus);
         assert_eq!(scanner.tokens[1].ttype, TT::Minus);
         assert_eq!(scanner.tokens[2].ttype, TT::EndOfFile)
+    }
+    #[rstest]
+    #[case::bang_equals("!=", TT::BangEquals)]
+    #[case::bang("!", TT::Bang)]
+    #[case::equal_equals("==", TT::Equals)]
+    #[case::assign("=", TT::Assign)]
+    #[case::greater(">", TT::Greater)]
+    #[case::greater_equals(">=", TT::GreaterEquals)]
+    #[case::less("<", TT::Less)]
+    #[case::less_equals("<=", TT::LessEquals)]
+
+    fn test_double_char_tokens(#[case] input: &str, #[case] expected: TT) {
+        let mut scanner = Scanner::new(input);
+        scanner.tokenize();
+
+        assert_eq!(scanner.tokens[0].ttype, expected)
     }
 }
