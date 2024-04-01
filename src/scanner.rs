@@ -52,6 +52,7 @@ impl Display for Token {
 pub struct Scanner<'a> {
     pub source: &'a str,
     pub tokens: Vec<Token>,
+    line: usize,
 }
 
 impl Scanner<'_> {
@@ -87,10 +88,7 @@ mod tests {
     #[case::test_plus_token("+", TokenType::Plus)]
     #[case::test_minus_token("-", TokenType::Minus)]
     fn test_single_char_tokens(#[case] line: &str, #[case] expected: TokenType) {
-        let mut scanner = Scanner {
-            source: line,
-            tokens: Vec::new(),
-        };
+        let mut scanner = Scanner::new(line);
 
         scanner.tokenize();
 
