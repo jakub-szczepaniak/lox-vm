@@ -1,13 +1,13 @@
 use nom::{
     branch::alt,
-    bytes::complete::tag,
+    bytes::complete::{escaped, tag, take, take_until},
     character::complete::{line_ending, space0},
-    combinator::map,
+    combinator::{map, map_res},
     multi::many0,
     sequence::delimited,
     IResult,
 };
-use std::fmt::Display;
+use std::{fmt::Display, str::Utf8Error};
 
 macro_rules! operand_token {
     ($func_name: ident, $lexeme: literal, $output: expr) => {
@@ -67,7 +67,39 @@ fn equal_tokens(input: &str) -> IResult<&str, Token> {
     ))(input)
 }
 
-#[derive(Clone)]
+fn parse_string(input: &str) -> IResult<&str, Token> {
+    map(string, Token::new_string)(input)
+}
+
+fn string(input: &str) -> IResult<&str, String> {
+    delimited(tag("\""), map_res(utf_points, convert_vec_utf8), tag("\""))(input)
+}
+
+fn utf_points(input: &str) -> IResult<&str, Vec<u8>> {
+    let (input1, char1) = take(1usize)(input)?;
+    match char1.as_bytes() {
+        b"\"" => Ok((input, vec![])),
+        b"\\" => {
+            let (input2, char2) = take(1usize)(input1)?;
+            utf_points(input2)
+                .map(|(slice, done)| (slice, concat_slice_with_vec(char2.as_bytes(), done)))
+        }
+        c => utf_points(input1).map(|(slice, done)| (slice, concat_slice_with_vec(c, done))),
+    }
+}
+
+fn concat_slice_with_vec(c: &[u8], done: Vec<u8>) -> Vec<u8> {
+    let mut new_vec = c.to_vec();
+    new_vec.extend(done);
+    new_vec
+}
+
+fn convert_vec_utf8(v: Vec<u8>) -> Result<String, Utf8Error> {
+    let slice = v.as_slice();
+    std::str::from_utf8(slice).map(|s| s.to_owned())
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum Literal {
     String(String),
 }
@@ -123,7 +155,7 @@ impl Display for TT {
         }
     }
 }
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Token {
     ttype: TT,
     line: usize,
@@ -176,7 +208,7 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((operand_tokens, equal_tokens)),
+            alt((operand_tokens, equal_tokens, parse_string)),
             space0,
         ))(self.source);
 
@@ -250,5 +282,12 @@ mod tests {
         scanner.tokenize();
 
         assert_eq!(scanner.tokens[0].ttype, expected)
+    }
+
+    #[rstest]
+    #[case::simple_string("\"ab\"", Token::new_string("ab".to_string()))]
+
+    fn test_string_parser(#[case] input: &str, #[case] output: Token) {
+        assert_eq!(parse_string(input), Ok(("", output)))
     }
 }
