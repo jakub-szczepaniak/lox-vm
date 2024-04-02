@@ -67,7 +67,7 @@ fn equal_tokens(input: &str) -> IResult<&str, Token> {
     ))(input)
 }
 
-fn parse_string(input: &str) -> IResult<&str, Token> {
+fn parsed_string(input: &str) -> IResult<&str, Token> {
     map(string, Token::new_string)(input)
 }
 
@@ -208,7 +208,7 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((operand_tokens, equal_tokens, parse_string)),
+            alt((operand_tokens, equal_tokens, parsed_string)),
             space0,
         ))(self.source);
 
@@ -288,6 +288,6 @@ mod tests {
     #[case::simple_string("\"ab\"", Token::new_string("ab".to_string()))]
 
     fn test_string_parser(#[case] input: &str, #[case] output: Token) {
-        assert_eq!(parse_string(input), Ok(("", output)))
+        assert_eq!(parsed_string(input), Ok(("", output)))
     }
 }

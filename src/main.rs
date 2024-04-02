@@ -26,7 +26,8 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(filename) = cli.filename {
-        println!("{}", filename.to_str().unwrap())
+        let path = filename.to_str().expect("Expected non-empty path");
+        run_file(&mut vm, path).expect("Could not run file");
     } else {
         println!("Starting Lox Repl");
         repl(&mut vm);
@@ -34,6 +35,16 @@ fn main() {
 
     vm.free();
 }
+
+fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
+    let buf = std::fs::read_to_string(path)?;
+    match vm.interpret(&buf) {
+        InterpretResult::InterpretCompilerError => std::process::exit(65),
+        InterpretResult::InterpretRuntimeError => std::process::exit(70),
+        InterpretResult::InterpretOK => std::process::exit(0),
+    }
+}
+
 fn repl(vm: &mut VM) {
     let stdin = io::stdin();
     print!("lox:>");
