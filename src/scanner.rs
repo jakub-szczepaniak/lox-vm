@@ -1,12 +1,12 @@
 use nom::{
     branch::alt,
-    bytes::complete::{escaped, tag, take, take_while},
-    character::complete::{digit1, line_ending, space0},
-    character::is_digit,
-    combinator::{map, map_res},
+    bytes::complete::{tag, take},
+    character::complete::{alpha1, alphanumeric1, space0},
+    combinator::{map, map_res, recognize},
+    error::ParseError,
     multi::many0,
     number::complete::double,
-    sequence::delimited,
+    sequence::{delimited, pair},
     IResult,
 };
 use std::{fmt::Display, str::Utf8Error};
@@ -107,10 +107,76 @@ fn parsed_digit(input: &str) -> IResult<&str, Token> {
     Ok((input, Token::new_digit(format!("{}", lexeme), lexeme)))
 }
 
+fn parsed_symbol(input: &str) -> IResult<&str, Token> {
+    let bytes = input.as_bytes();
+
+    let result = map_res(
+        recognize(pair(
+            alt((alpha1::<_, nom::error::Error<_>>, tag("_"))),
+            many0(alt((alphanumeric1, tag("_")))),
+        )),
+        |keyword| {
+            let c = std::str::from_utf8(keyword);
+            c.map(|syntax| match syntax {
+                "class" => Token::new(TokenType::Class, 1, syntax.to_string()),
+                "else" => Token::new(TokenType::Else, 1, syntax.to_string()),
+                "fun" => Token::new(TokenType::Fun, 1, syntax.to_string()),
+                "for" => Token::new(TokenType::For, 1, syntax.to_string()),
+                "or" => Token::new(TokenType::Or, 1, syntax.to_string()),
+                "print" => Token::new(TokenType::Print, 1, syntax.to_string()),
+                "return" => Token::new(TokenType::Return, 1, syntax.to_string()),
+                "super" => Token::new(TokenType::Super, 1, syntax.to_string()),
+                "this" => Token::new(TokenType::This, 1, syntax.to_string()),
+                "var" => Token::new(TokenType::Var, 1, syntax.to_string()),
+                "while" => Token::new(TokenType::While, 1, syntax.to_string()),
+                "break" => Token::new(TokenType::Break, 1, syntax.to_string()),
+                "if" => Token::new(TokenType::If, 1, syntax.to_string()),
+                "true" => Token {
+                    ttype: TT::Constant,
+                    line: 1,
+                    lexeme: syntax.to_string(),
+                    literal: Some(Literal::Boolean(true)),
+                },
+                "false" => Token {
+                    ttype: TT::Constant,
+                    line: 1,
+                    lexeme: syntax.to_string(),
+                    literal: Some(Literal::Boolean(false)),
+                },
+                "nil" => Token {
+                    ttype: TT::Constant,
+                    line: 1,
+                    lexeme: syntax.to_string(),
+                    literal: Some(Literal::Nil),
+                },
+                "and" => Token::new(TokenType::And, 1, syntax.to_string()),
+                _ => Token::new(TokenType::Identifier, 1, syntax.to_string()),
+            })
+        },
+    )(bytes);
+
+    match result {
+        Ok((out, token)) => {
+            // handle the Ok case
+            Ok((std::str::from_utf8(out).unwrap(), token))
+        }
+        Err(e) => {
+            // handle the Err case
+            let str_error = e.map(|inner_error| {
+                let str_slice = std::str::from_utf8(inner_error.input).unwrap();
+                nom::error::Error::new(str_slice, inner_error.code)
+            });
+            Err(str_error)
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal {
     String(String),
     Number(Value),
+    Boolean(bool),
+    Nil,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -136,9 +202,27 @@ pub enum TokenType {
     GreaterEquals,
     Less,
     LessEquals,
-    //
+    //literals
     String,
     Number,
+    Identifier,
+    Constant,
+
+    //keywords
+    And,
+    Class,
+    Else,
+    Fun,
+    For,
+    If,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    Var,
+    While,
+    Break,
 }
 
 impl Display for TT {
@@ -231,7 +315,13 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((operand_tokens, equal_tokens, parsed_string, parsed_digit)),
+            alt((
+                operand_tokens,
+                equal_tokens,
+                parsed_string,
+                parsed_digit,
+                parsed_symbol,
+            )),
             space0,
         ))(self.source);
 
