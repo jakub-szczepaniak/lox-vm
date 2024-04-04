@@ -1,9 +1,11 @@
 use nom::{
     branch::alt,
-    bytes::complete::{escaped, tag, take, take_until},
-    character::complete::{line_ending, space0},
+    bytes::complete::{escaped, tag, take, take_while},
+    character::complete::{digit1, line_ending, space0},
+    character::is_digit,
     combinator::{map, map_res},
     multi::many0,
+    number::complete::double,
     sequence::delimited,
     IResult,
 };
@@ -99,9 +101,16 @@ fn convert_vec_utf8(v: Vec<u8>) -> Result<String, Utf8Error> {
     std::str::from_utf8(slice).map(|s| s.to_owned())
 }
 
+fn parsed_digit(input: &str) -> IResult<&str, Token> {
+    let (input, lexeme) = double(input)?;
+
+    Ok((input, Token::new_digit(format!("{}", lexeme), lexeme)))
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal {
     String(String),
+    Number(Value),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -129,6 +138,7 @@ pub enum TokenType {
     LessEquals,
     //
     String,
+    Number,
 }
 
 impl Display for TT {
@@ -151,6 +161,8 @@ impl Display for TT {
             TT::Equals => write!(f, "Equals"),
             TT::Assign => write!(f, "Assign"),
             TT::Greater => write!(f, "Greater"),
+            TT::String => write!(f, "String"),
+            TT::Number => write!(f, "Number"),
             _ => write!(f, ""),
         }
     }
@@ -180,6 +192,15 @@ impl Token {
             literal: Some(Literal::String(lexeme)),
         }
     }
+
+    fn new_digit(lexeme: String, value: f64) -> Self {
+        Self {
+            ttype: TT::Number,
+            line: 1,
+            lexeme: lexeme.clone(),
+            literal: Some(Literal::Number(value)),
+        }
+    }
 }
 
 impl Display for Token {
@@ -189,6 +210,8 @@ impl Display for Token {
 }
 
 use TokenType as TT;
+
+use crate::value::Value;
 
 pub struct Scanner<'a> {
     pub source: &'a str,
@@ -208,7 +231,7 @@ impl<'a> Scanner<'a> {
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
             space0,
-            alt((operand_tokens, equal_tokens, parsed_string)),
+            alt((operand_tokens, equal_tokens, parsed_string, parsed_digit)),
             space0,
         ))(self.source);
 
@@ -289,5 +312,12 @@ mod tests {
 
     fn test_string_parser(#[case] input: &str, #[case] output: Token) {
         assert_eq!(parsed_string(input), Ok(("", output)))
+    }
+
+    #[rstest]
+    #[case::single_digit("1", Token::new_digit("1".to_string(), 1.0))]
+    #[case::digit_with_fraction("1.2", Token::new_digit("1.2".to_string(), 1.2))]
+    fn test_digit_scanner(#[case] input: &str, #[case] output: Token) {
+        assert_eq!(parsed_digit(input), Ok(("", output)))
     }
 }
