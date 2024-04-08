@@ -1,16 +1,14 @@
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
-    character::complete::{alpha1, alphanumeric1, space0},
+    character::complete::{alpha1, alphanumeric1, multispace0},
     combinator::{map, map_res, recognize},
-    error::ParseError,
     multi::many0,
     number::complete::double,
     sequence::{delimited, pair},
     IResult,
 };
 use std::{fmt::Display, str::Utf8Error};
-
 macro_rules! operand_token {
     ($func_name: ident, $lexeme: literal, $output: expr) => {
         fn $func_name(input: &str) -> IResult<&str, Token> {
@@ -295,7 +293,7 @@ impl Display for Token {
 
 use TokenType as TT;
 
-use crate::value::Value;
+use crate::{value::Value, InterpretResult};
 
 pub struct Scanner<'a> {
     pub source: &'a str,
@@ -314,7 +312,7 @@ impl<'a> Scanner<'a> {
 
     pub fn tokenize(&mut self) {
         let result: IResult<&str, Vec<Token>> = many0(delimited(
-            space0,
+            multispace0,
             alt((
                 operand_tokens,
                 equal_tokens,
@@ -322,11 +320,13 @@ impl<'a> Scanner<'a> {
                 parsed_digit,
                 parsed_symbol,
             )),
-            space0,
+            multispace0,
         ))(self.source);
 
         match result {
-            Ok((_, token)) => self.tokens = token,
+            Ok((rest, token)) => {
+                self.tokens = token;
+            }
             Err(_e) => {}
         }
         self.tokens

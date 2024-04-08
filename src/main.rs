@@ -3,7 +3,6 @@ use std::{
     path::PathBuf,
 };
 
-use chunk::*;
 use vm::*;
 
 mod chunk;
