@@ -40,9 +40,9 @@ fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
     let buf = std::fs::read_to_string(path)?;
     let res = vm.interpret(&buf);
     match res {
-        CompilerError => std::process::exit(65),
-        RuntimeError => std::process::exit(70),
-        _ => std::process::exit(0),
+        Err(InterpretResult::CompilerError) => std::process::exit(65),
+        Err(InterpretResult::RuntimeError) => std::process::exit(70),
+        Ok(_) => std::process::exit(0),
     }
 }
 
