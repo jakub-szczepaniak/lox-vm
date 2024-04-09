@@ -194,6 +194,17 @@ pub enum Literal {
     Nil,
 }
 
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(a) => write!(f, "{}", a),
+            Self::Boolean(a) => write!(f, "{}", a),
+            Self::Nil => write!(f, "None"),
+            Self::Number(x) => write!(f, "{}", x),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     EndOfFile,
@@ -304,7 +315,13 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}::{}:{}", self.line, self.ttype, self.lexeme)
+        match self.ttype {
+            TT::String | TT::Number | TT::Constant => {
+                write!(f, "{}::{}:{:?}", self.line, self.ttype, self.literal)
+            }
+
+            _ => write!(f, "{}::{}:{}", self.line, self.ttype, self.lexeme),
+        }
     }
 }
 
