@@ -1,11 +1,21 @@
 use crate::{chunk::*, compiler::*, value::Value};
-use std::io::*;
 
-#[derive(PartialEq, Debug)]
+use std::fmt::Debug;
+use thiserror::*;
+#[derive(thiserror::Error, PartialEq)]
 pub enum InterpretResult {
-    InterpretOK,
-    InterpretCompilerError,
-    InterpretRuntimeError,
+    //InterpretOK,
+    #[error("Fail to compile source code")]
+    CompilerError,
+    #[error("Runtime error")]
+    RuntimeError,
+}
+
+impl Debug for InterpretResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self)?;
+        Ok(())
+    }
 }
 
 pub struct VM {
@@ -23,16 +33,16 @@ impl VM {
 
     pub fn free(&self) {}
 
-    pub fn interpret(&mut self, source: &str) -> InterpretResult {
+    pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         self.ip = 0;
 
         let compiler = Compiler::new();
-        compiler.compile(source.to_string());
+        compiler.compile(source.to_string())?;
 
-        InterpretResult::InterpretOK
+        Ok(())
     }
 
-    fn run(&mut self, chunk: &Chunk) -> InterpretResult {
+    fn run(&mut self, chunk: &Chunk) -> Result<(), InterpretResult> {
         loop {
             #[cfg(feature = "debug_trace_execution")]
             {
@@ -46,7 +56,7 @@ impl VM {
             match instruction {
                 OpCode::Return => {
                     println!("{}", self.stack.pop().unwrap());
-                    return InterpretResult::InterpretOK;
+                    return Ok(());
                 }
                 OpCode::Constant(v) => {
                     self.stack.push(v);
@@ -58,31 +68,19 @@ impl VM {
                 OpCode::Add => self.binary_op(|a, b| a + b),
                 OpCode::Substract => self.binary_op(|a, b| a - b),
                 OpCode::Multiply => self.binary_op(|a, b| a * b),
-                OpCode::Divide => {
-                    let result = self.divide_op();
-
-                    if let Ok(exc) = result {
-                        match exc {
-                            InterpretResult::InterpretOK => {}
-                            InterpretResult::InterpretRuntimeError => {
-                                return InterpretResult::InterpretRuntimeError
-                            }
-                            _ => {}
-                        }
-                    }
-                }
+                OpCode::Divide => self.divide_op()?,
             }
         }
     }
 
-    fn divide_op(&mut self) -> Result<InterpretResult> {
+    fn divide_op(&mut self) -> Result<(), InterpretResult> {
         let b = self.stack.pop().unwrap();
         match b {
-            0.0 => Ok(InterpretResult::InterpretRuntimeError),
+            0.0 => Err(InterpretResult::RuntimeError),
             _ => {
                 let a = self.stack.pop().unwrap();
                 self.stack.push(a / b);
-                Ok(InterpretResult::InterpretOK)
+                Ok(())
             }
         }
     }
@@ -114,7 +112,7 @@ mod tests {
 
         let result = vm.run(&chunk);
 
-        assert_eq!(result, InterpretResult::InterpretOK)
+        assert!(result.is_ok())
     }
 
     #[rstest]

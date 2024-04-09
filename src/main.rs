@@ -38,10 +38,11 @@ fn main() {
 
 fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
     let buf = std::fs::read_to_string(path)?;
-    match vm.interpret(&buf) {
-        InterpretResult::InterpretCompilerError => std::process::exit(65),
-        InterpretResult::InterpretRuntimeError => std::process::exit(70),
-        InterpretResult::InterpretOK => std::process::exit(0),
+    let res = vm.interpret(&buf);
+    match res {
+        CompilerError => std::process::exit(65),
+        RuntimeError => std::process::exit(70),
+        _ => std::process::exit(0),
     }
 }
 

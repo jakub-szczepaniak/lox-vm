@@ -1,4 +1,4 @@
-use crate::scanner::*;
+use crate::{scanner::*, InterpretResult};
 
 pub struct Compiler {}
 
@@ -7,11 +7,12 @@ impl Compiler {
         Self {}
     }
 
-    pub fn compile(&self, source: String) {
+    pub fn compile(&self, source: String) -> Result<(), InterpretResult> {
         let mut scanner = Scanner::new(&source);
         scanner.tokenize();
         for token in &scanner.tokens {
             println!("{}", token);
         }
+        Ok(())
     }
 }
