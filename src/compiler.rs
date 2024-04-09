@@ -9,7 +9,7 @@ impl Compiler {
 
     pub fn compile(&self, source: String) -> Result<(), InterpretResult> {
         let mut scanner = Scanner::new(&source);
-        scanner.tokenize();
+        scanner.tokenize()?;
         for token in &scanner.tokens {
             println!("{}", token);
         }

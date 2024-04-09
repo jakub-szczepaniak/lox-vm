@@ -1,5 +1,5 @@
 use crate::token::TT;
-use crate::token::*;
+use crate::{token::*, InterpretResult};
 
 pub struct Scanner<'a> {
     pub source: &'a str,
@@ -16,17 +16,21 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn tokenize(&mut self) {
+    pub fn tokenize(&mut self) -> Result<(), InterpretResult> {
         let result = tokenize(self.source);
 
         match result {
-            Ok((_, token)) => {
+            Ok((rest, token)) => {
                 self.tokens = token;
+                if !rest.is_empty() {
+                    return Err(InterpretResult::CompilerError);
+                }
             }
             Err(_e) => {}
         }
         self.tokens
-            .push(Token::new(TT::EndOfFile, self.line, "".to_string()))
+            .push(Token::new(TT::EndOfFile, self.line, "".to_string()));
+        Ok(())
     }
 }
 

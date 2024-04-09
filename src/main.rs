@@ -55,8 +55,12 @@ fn repl(vm: &mut VM) {
             if line.is_empty() {
                 break;
             }
-            println!("{line}");
-            let _ = vm.interpret(&line);
+            let result = vm.interpret(&line);
+            match result {
+                Err(InterpretResult::CompilerError) => println!("Compilation error!"),
+                Err(InterpretResult::RuntimeError) => println!("Runtime error"),
+                Ok(_) => {}
+            }
         } else {
             break;
         }
