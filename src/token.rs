@@ -273,6 +273,7 @@ impl Display for TT {
             TT::Greater => write!(f, "Greater"),
             TT::String => write!(f, "String"),
             TT::Number => write!(f, "Number"),
+            TT::Constant => write!(f, "Constant"),
             _ => write!(f, ""),
         }
     }
