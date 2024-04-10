@@ -2,7 +2,7 @@ use crate::value::Value;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
-    character::complete::{alpha1, alphanumeric1, multispace0},
+    character::complete::{alpha1, alphanumeric1, line_ending, multispace0},
     combinator::{map, map_res, recognize},
     multi::many0,
     number::complete::double,
@@ -328,10 +328,54 @@ impl Display for Token {
 
 pub use TokenType as TT;
 
+pub fn tokenize_line(input: (&str, usize)) -> IResult<(&str, usize), Token> {
+    let res = token_plus_line(input).unwrap();
+    Ok(res)
+}
+
+pub fn new_line(input: (&str, usize)) -> IResult<(&str, usize), &str> {
+    let line_number = input.1;
+    let res = map(line_ending::<&str, nom::error::Error<&str>>, move |_| {
+        line_number + 1
+    })(input.0)
+    .unwrap();
+
+    let result = (res, "");
+    Ok(result)
+}
+
+macro_rules! single_token {
+    ($func_name: ident, $lexeme: literal, $output: expr) => {
+        fn $func_name(input: (&str, usize)) -> IResult<(&str, usize), Token> {
+            let line = input.1;
+            let res = map(
+                tag::<&str, &str, nom::error::Error<&str>>($lexeme),
+                move |_| Token::new($output, line, $lexeme.to_string()),
+            )(input.0)
+            .unwrap();
+            Ok(((res.0, line), res.1))
+        }
+    };
+}
+
+single_token!(token_plus_line, "+", TT::Plus);
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::*;
+
+    #[test]
+    fn test_new_line() {
+        let input: (&str, usize) = ("\n", 1);
+        assert_eq!(new_line(input), Ok((("", 2), "")))
+    }
+
+    #[rstest]
+    #[case::single_with_line(("+", 1), Token::new(TT::Plus, 1, "+".to_string()))]
+    fn test_tokenize_with_line(#[case] input: (&str, usize), #[case] output: Token) {
+        assert_eq!(tokenize_line(input), Ok((("", 1), output)))
+    }
+
     #[rstest]
     #[case::simple_string("\"ab\"", Token::new_string("ab".to_string()))]
 
