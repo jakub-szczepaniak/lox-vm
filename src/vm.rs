@@ -37,7 +37,7 @@ impl VM {
         self.ip = 0;
 
         let compiler = Compiler::new();
-        compiler.compile(source.to_string())?;
+        compiler.compile(source)?;
 
         Ok(())
     }
