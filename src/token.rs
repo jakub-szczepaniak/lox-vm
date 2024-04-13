@@ -91,6 +91,8 @@ impl Display for TT {
             TT::String => write!(f, "String"),
             TT::Number => write!(f, "Number"),
             TT::Constant => write!(f, "Constant"),
+            TT::Identifier => write!(f, "Identifier"),
+            TT::And => write!(f, "And"),
             _ => write!(f, ""),
         }
     }
