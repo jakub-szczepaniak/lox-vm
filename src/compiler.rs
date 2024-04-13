@@ -12,15 +12,17 @@ impl Compiler {
         let mut line = 0;
         loop {
             let token = scanner.scan_token();
-            if token.line() != line {
-                print!("{:4} ", token.line());
-                line = token.line();
+            if token.line != line {
+                print!("{:4} ", token.line);
+                line = token.line;
             } else {
                 print!("   | ");
             }
             println!(
-                "{:10} '{}' '{:?}'",
-                token.ttype, token.lexeme, token.literal
+                "{:10} '{}' '{}'",
+                token.ttype,
+                token.lexeme,
+                token.literal.unwrap_or(Literal::Nil)
             );
             if token.ttype == TT::EndOfFile {
                 break;

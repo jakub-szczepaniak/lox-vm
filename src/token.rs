@@ -98,15 +98,12 @@ impl Display for TT {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Token {
     pub ttype: TT,
-    line: usize,
+    pub line: usize,
     pub lexeme: String,
     pub literal: Option<Literal>,
 }
 
 impl Token {
-    pub fn line(&self) -> usize {
-        self.line
-    }
     pub fn new(ttype: TT, line: usize, lexeme: String) -> Self {
         Self {
             ttype,
