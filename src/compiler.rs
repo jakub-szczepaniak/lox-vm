@@ -1,33 +1,30 @@
-use crate::{scanner::*, token::*, InterpretResult};
+use crate::{chunk::Chunk, scanner::*, token::*, InterpretResult};
 
-pub struct Compiler {}
+#[derive(Default)]
+pub struct Parser {
+    previous: Token,
+    current: Token,
+}
 
-impl Compiler {
-    pub fn new() -> Self {
-        Self {}
+pub struct Compiler<'a> {
+    chunk: &'a Chunk,
+}
+
+impl<'a> Compiler<'a> {
+    pub fn new(chunk: &'a mut Chunk) -> Self {
+        Self { chunk }
     }
 
     pub fn compile(&self, source: &str) -> Result<(), InterpretResult> {
         let mut scanner = Scanner::new(source);
-        let mut line = 0;
-        loop {
-            let token = scanner.scan_token();
-            if token.line != line {
-                print!("{:4} ", token.line);
-                line = token.line;
-            } else {
-                print!("   | ");
-            }
-            println!(
-                "{:10} '{}' '{}'",
-                token.ttype,
-                token.lexeme,
-                token.literal.unwrap_or(Literal::Nil)
-            );
-            if token.ttype == TT::EndOfFile {
-                break;
-            }
-        }
+        self.advance();
+        self.expression();
+        self.consume(TT::EndOfFile, "Expected end of expression");
         Ok(())
     }
+
+    fn advance(&self) {}
+    fn expression(&self) {}
+
+    fn consume(&self, ttype: TT, message: &str) {}
 }
