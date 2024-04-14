@@ -34,12 +34,13 @@ impl VM {
     pub fn free(&self) {}
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
-        self.ip = 0;
+        let mut chunk = Chunk::new();
+        let compiler = Compiler::new(&mut chunk);
 
-        let compiler = Compiler::new();
         compiler.compile(source)?;
 
-        Ok(())
+        self.ip = 0;
+        self.run(&chunk)
     }
 
     fn run(&mut self, chunk: &Chunk) -> Result<(), InterpretResult> {
