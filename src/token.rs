@@ -23,8 +23,10 @@ impl Display for Literal {
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
+    //special
     EndOfFile,
     Error,
+    Undefined,
     Plus,
     Minus,
     LeftParen,
@@ -141,6 +143,17 @@ impl Display for Token {
             }
 
             _ => write!(f, "{}::{}:{}", self.line, self.ttype, self.lexeme),
+        }
+    }
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            ttype: TT::Undefined,
+            line: 0,
+            lexeme: "".to_string(),
+            literal: None,
         }
     }
 }
