@@ -1,4 +1,5 @@
 use crate::value::*;
+use crate::vm::Emmitable;
 use std::fmt::Display;
 use std::io::Write;
 #[derive(Debug, PartialEq, Clone)]
@@ -141,6 +142,13 @@ impl Chunk {
 
     pub fn read(&self, index: usize) -> OpCode {
         self.code[index].code.clone()
+    }
+}
+
+impl Emmitable for Chunk {
+    fn emit_byte(&mut self, byte: u8) {}
+    fn read(&self, ip: usize) -> OpCode {
+        self.code[ip].code.clone()
     }
 }
 

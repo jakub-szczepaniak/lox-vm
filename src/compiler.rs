@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, scanner::*, token::*, InterpretResult};
+use crate::{chunk::Chunk, scanner::*, token::*, Emmitable, InterpretResult};
 use std::cell::RefCell;
 
 #[derive(Default)]
@@ -8,13 +8,13 @@ pub struct Parser {
     had_error: RefCell<bool>,
 }
 
-pub struct Compiler<'a> {
-    chunk: &'a Chunk,
+pub struct Compiler<'a, T: Emmitable> {
+    chunk: &'a T,
     parser: Parser,
 }
 
-impl<'a> Compiler<'a> {
-    pub fn new(chunk: &'a mut Chunk) -> Self {
+impl<'a, T: Emmitable> Compiler<'a, T> {
+    pub fn new(chunk: &'a mut T) -> Self {
         Self {
             parser: Parser::default(),
             chunk,

@@ -3,8 +3,8 @@ use std::{
     path::PathBuf,
 };
 
+use chunk::*;
 use vm::*;
-
 mod chunk;
 mod compiler;
 mod scanner;
@@ -18,10 +18,15 @@ use clap::Parser;
 struct Cli {
     //path to .lox file for compilation
     filename: Option<PathBuf>,
+    chunk_type: Option<bool>,
 }
 
 fn main() {
-    let mut vm = VM::new();
+    // add command line parameter to select the chunk implementation
+
+    let chunk = Chunk::new();
+
+    let mut vm = VM::new(chunk);
 
     let cli = Cli::parse();
 
@@ -36,7 +41,7 @@ fn main() {
     vm.free();
 }
 
-fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
+fn run_file<T: Emmitable>(vm: &mut VM<T>, path: &str) -> io::Result<()> {
     let buf = std::fs::read_to_string(path)?;
     let res = vm.interpret(&buf);
     match res {
@@ -46,7 +51,7 @@ fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
     }
 }
 
-fn repl(vm: &mut VM) {
+fn repl<T: Emmitable>(vm: &mut VM<T>) {
     let stdin = io::stdin();
     print!("lox:>");
     let _ = stdout().flush();

@@ -18,32 +18,33 @@ impl Debug for InterpretResult {
     }
 }
 
-pub struct VM {
+pub struct VM<T: Emmitable> {
     ip: usize,
     stack: Vec<Value>,
+    chunk: T,
 }
 
-impl VM {
-    pub fn new() -> Self {
+impl<T: Emmitable> VM<T> {
+    pub fn new(t: T) -> Self {
         Self {
             ip: 0,
             stack: Vec::new(),
+            chunk: t,
         }
     }
 
     pub fn free(&self) {}
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
-        let mut chunk = Chunk::new();
-        let mut compiler = Compiler::new(&mut chunk);
+        let mut compiler = Compiler::new(&mut self.chunk);
 
         compiler.compile(source)?;
 
         self.ip = 0;
-        self.run(&chunk)
+        self.run()
     }
 
-    fn run(&mut self, chunk: &Chunk) -> Result<(), InterpretResult> {
+    fn run(&mut self) -> Result<(), InterpretResult> {
         loop {
             #[cfg(feature = "debug_trace_execution")]
             {
@@ -51,9 +52,10 @@ impl VM {
                 for value in &self.stack {
                     writeln!(&mut std::io::stdout(), "[ {value} ]").unwrap();
                 }
-                chunk.disassemble_instruction(self.ip, &mut std::io::stdout());
+                self.chunk
+                    .disassemble_instruction(self.ip, &mut std::io::stdout());
             }
-            let instruction = self.read_opcode(chunk);
+            let instruction = self.read_opcode();
             match instruction {
                 OpCode::Return => {
                     println!("{}", self.stack.pop().unwrap());
@@ -92,11 +94,16 @@ impl VM {
         self.stack.push(operation(a, b))
     }
 
-    fn read_opcode(&mut self, chunk: &Chunk) -> OpCode {
-        let result = chunk.read(self.ip);
+    fn read_opcode(&mut self) -> OpCode {
+        let result = self.chunk.read(self.ip);
         self.ip += 1;
         result
     }
+}
+
+pub trait Emmitable {
+    fn emit_byte(&mut self, byte: u8);
+    fn read(&self, ip: usize) -> OpCode;
 }
 
 #[cfg(test)]
@@ -106,21 +113,21 @@ mod tests {
 
     #[rstest]
     fn test_run_the_chunk_by_vm() {
-        let mut vm = VM::new();
         let mut chunk = Chunk::new();
         chunk.add_constant(1.0, 1);
         chunk.write_opcode(OpCode::Return, 1);
+        let mut vm = VM::new(chunk);
 
-        let result = vm.run(&chunk);
+        let result = vm.run();
 
         assert!(result.is_ok())
     }
 
     #[rstest]
     fn test_aritmethic_operations_on_stack() {
-        let mut vm = VM::new();
         let mut chunk = Chunk::new();
         chunk.add_constant(12.0, 1);
         chunk.write_opcode(OpCode::Negate, 2);
+        let mut vm = VM::new(chunk);
     }
 }
