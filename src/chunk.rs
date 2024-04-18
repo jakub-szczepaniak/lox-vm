@@ -146,9 +146,30 @@ impl Chunk {
 }
 
 impl Emmitable for Chunk {
-    fn emit_byte(&mut self, byte: u8) {}
+    fn emit_byte(&mut self, byte: u8) {
+        self.write_opcode(OpCode::from(byte), 0)
+    }
+    fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
+        self.write_opcode(OpCode::from(byte1), 0);
+        self.add_constant(byte2 as Value, 0);
+    }
     fn read(&self, ip: usize) -> OpCode {
         self.code[ip].code.clone()
+    }
+}
+
+impl From<u8> for OpCode {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Constant(0.0),
+            1 => Self::Return,
+            2 => Self::Negate,
+            3 => Self::Add,
+            4 => Self::Substract,
+            5 => Self::Multiply,
+            6 => Self::Divide,
+            _ => todo!("Undefined opcode conversion!"),
+        }
     }
 }
 

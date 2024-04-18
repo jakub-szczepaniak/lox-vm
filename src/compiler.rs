@@ -9,7 +9,7 @@ pub struct Parser {
 }
 
 pub struct Compiler<'a, T: Emmitable> {
-    chunk: &'a T,
+    chunk: &'a mut T,
     parser: Parser,
 }
 
@@ -22,10 +22,13 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
+        self.chunk.initialize_emiter();
+
         let mut scanner = Scanner::new(source);
         self.advance();
         self.expression();
         self.consume(TT::EndOfFile, "Expected end of expression");
+        self.chunk.finalize_emiter();
         Ok(())
     }
 
@@ -72,4 +75,12 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn expression(&self) {}
 
     fn consume(&self, ttype: TT, message: &str) {}
+
+    fn emit_byte(&mut self, byte: u8) {
+        self.chunk.emit_byte(byte)
+    }
+
+    fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
+        self.chunk.emit_bytes(byte1, byte2)
+    }
 }
