@@ -1,5 +1,5 @@
 use crate::value::*;
-use crate::vm::Emmitable;
+use crate::vm::{Emmitable, OpCodable};
 use std::fmt::Display;
 use std::io::Write;
 #[derive(Debug, PartialEq, Clone)]
@@ -146,18 +146,22 @@ impl Chunk {
 }
 
 impl Emmitable for Chunk {
-    fn emit_byte(&mut self, byte: u8) {
-        self.write_opcode(OpCode::from(byte), 0)
+    fn emit_byte(&mut self, byte: u8, line: usize) {
+        self.write_opcode(OpCode::from(byte), line)
     }
-    fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
-        self.write_opcode(OpCode::from(byte1), 0);
-        self.add_constant(byte2 as Value, 0);
+    fn emit_bytes(&mut self, byte1: u8, byte2: u8, line: usize) {
+        self.write_opcode(OpCode::from(byte1), line);
+        self.add_constant(byte2 as Value, line);
     }
+}
+
+
+impl OpCodable for Chunk {
+    
     fn read(&self, ip: usize) -> OpCode {
         self.code[ip].code.clone()
     }
 }
-
 impl From<u8> for OpCode {
     fn from(value: u8) -> Self {
         match value {

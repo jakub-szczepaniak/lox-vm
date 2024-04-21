@@ -77,10 +77,10 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn consume(&self, ttype: TT, message: &str) {}
 
     fn emit_byte(&mut self, byte: u8) {
-        self.chunk.emit_byte(byte)
+        self.chunk.emit_byte(byte, self.parser.previous.line)
     }
 
     fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
-        self.chunk.emit_bytes(byte1, byte2)
+        self.chunk.emit_bytes(byte1, byte2, self.parser.previous.line)
     }
 }

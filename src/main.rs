@@ -41,7 +41,7 @@ fn main() {
     vm.free();
 }
 
-fn run_file<T: Emmitable>(vm: &mut VM<T>, path: &str) -> io::Result<()> {
+fn run_file<T: Emmitable + OpCodable>(vm: &mut VM<T>, path: &str) -> io::Result<()> {
     let buf = std::fs::read_to_string(path)?;
     let res = vm.interpret(&buf);
     match res {
@@ -51,7 +51,7 @@ fn run_file<T: Emmitable>(vm: &mut VM<T>, path: &str) -> io::Result<()> {
     }
 }
 
-fn repl<T: Emmitable>(vm: &mut VM<T>) {
+fn repl<T: Emmitable + OpCodable>(vm: &mut VM<T>) {
     let stdin = io::stdin();
     print!("lox:>");
     let _ = stdout().flush();
