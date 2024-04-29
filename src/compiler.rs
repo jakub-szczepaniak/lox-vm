@@ -1,5 +1,5 @@
-use crate::{chunk::Chunk, scanner::*, token::*, Emmitable, InterpretResult};
-use std::cell::RefCell;
+use crate::{chunk::Chunk, scanner::*, token::*, value::Value, Emmitable, InterpretResult, OpCode};
+use std::{cell::RefCell, io::LineWriter};
 
 #[derive(Default)]
 pub struct Parser {
@@ -27,6 +27,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         let mut scanner = Scanner::new(source);
         self.advance();
         self.expression();
+        self.end_compiler();
         self.consume(TT::EndOfFile, "Expected end of expression");
         self.chunk.finalize_emiter();
         Ok(())
@@ -72,6 +73,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parser.had_error.replace(true);
     }
 
+    fn number(&mut self) {
+        let value = self.parser.previous.lexeme.parse::<Value>();
+        self.emit_constant(value.ok().unwrap())
+    }
+
     fn expression(&self) {}
 
     fn consume(&self, ttype: TT, message: &str) {}
@@ -80,7 +86,23 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.chunk.emit_byte(byte, self.parser.previous.line)
     }
 
-    fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
-        self.chunk.emit_bytes(byte1, byte2, self.parser.previous.line)
+    fn emit_constant(&mut self, val: Value) {
+        self.chunk.emit_constant(val, self.parser.previous.line)   
     }
+
+
+
+    fn emit_bytes(&mut self, byte1: OpCode, byte2: u8) {
+        self.emit_byte(byte1.into());
+        self.emit_byte(byte2);
+    }
+
+    fn emit_return(&mut self) {
+        self.emit_byte(OpCode::Return.into())
+    }
+
+    fn end_compiler(&mut self) {
+        self.emit_return()
+    }
+
 }

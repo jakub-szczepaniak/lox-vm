@@ -111,16 +111,20 @@ impl Chunk {
 
 impl Emmitable for Chunk {
     fn emit_byte(&mut self, byte: u8, line: usize) {
-        self.write_opcode(OpCode::from(byte), line)
+        self.write(byte, line)
     }
-    fn emit_bytes(&mut self, byte1: u8, byte2: u8, line: usize) {
-        self.write_opcode(OpCode::from(byte1), line);
-        self.add_constant(byte2 as Value, line);
+    fn emit_bytes(&mut self,byte1: OpCode, byte2: u8, line: usize) {
+        self.write(byte1.into(), line);
+        self.write(byte2, line);
+    }
+    fn emit_constant(&mut self, value: Value, line: usize) {
+        if let Some(index) = self.add_constant(value){
+            self.emit_bytes(OpCode::Constant, index, line)
+        } else {
+            ()
+        }
     }
 
-    fn add_constant(&mut self, val: Value, line: usize) {
-        
-    }
 
 }
 
@@ -128,7 +132,10 @@ impl Emmitable for Chunk {
 impl OpCodable for Chunk {
     
     fn read(&self, ip: usize) -> OpCode {
-        self.code[ip].code.clone()
+        self.code[ip].into()
+    }
+    fn read_constant(&self, index:usize) -> Value {
+        self.get_constant(index)
     }
 }
 impl From<u8> for OpCode {
