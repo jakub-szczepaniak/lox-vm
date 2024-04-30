@@ -169,6 +169,8 @@ impl From<OpCode> for u8 {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::btree_map::OccupiedEntry;
+
     use super::*;
     use rstest::*;
 
@@ -182,8 +184,10 @@ mod tests {
     #[rstest]
     fn test_write_constant_to_chunk() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(1.2);
-        assert_eq!(chunk.code.len(), 1)
+        chunk.write_opcode(OpCode::Constant, 1);
+        let const_index = chunk.add_constant(1.2).unwrap();
+        chunk.write(const_index, 1);
+        assert_eq!(chunk.code.len(), 2)
     }
 
     #[rstest]
@@ -216,13 +220,16 @@ mod tests {
     fn test_disassemble_chunk_with_const() {
         let mut chunk = Chunk::new();
         let mut output = Vec::new();
-        chunk.add_constant(12.4);
+        chunk.write_opcode(OpCode::Constant, 1);
+        let const_index = chunk.add_constant(12.4).unwrap();
+        chunk.write(const_index, 1);        
+        
 
         chunk.disassemble("test chunk", &mut output);
 
         assert_eq!(
             output,
-            b"==test chunk==\n0000  133 OP_CONSTANT         0 '12.4'\n"
+            b"==test chunk==\n0000    1 OP_CONSTANT         0 '12.4'\n"
         )
     }
 

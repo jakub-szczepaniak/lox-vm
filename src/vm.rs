@@ -128,7 +128,9 @@ mod tests {
     #[rstest]
     fn test_run_the_chunk_by_vm() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(1.0);
+        chunk.write_opcode(OpCode::Constant, 1);
+        let const_index = chunk.add_constant(1.0).unwrap();
+        chunk.write(const_index, 1);
         chunk.write_opcode(OpCode::Return, 1);
         let mut vm = VM::new(chunk);
 
