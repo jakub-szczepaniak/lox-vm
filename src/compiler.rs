@@ -8,9 +8,63 @@ pub struct Parser {
     had_error: RefCell<bool>,
 }
 
+
+#[derive(PartialEq)]
+enum Precedence {
+    None = 0, 
+    Assignment,
+    Or, 
+    And, 
+    Equality,
+    Comparison, 
+    Term, 
+    Factor, 
+    Unary, 
+    Call, 
+    Primary
+}
+
+impl From<u8> for Precedence {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Precedence::None,
+            1 => Precedence::Assignment,
+            2 => Precedence::Or,
+            3 => Precedence::And, 
+            4 => Precedence::Equality, 
+            5 => Precedence::Comparison,
+            6 => Precedence::Term, 
+            7 => Precedence::Factor, 
+            8 => Precedence::Unary, 
+            9 => Precedence::Call, 
+            10 => Precedence::Primary,
+            _ => unimplemented!("Should never happen!")
+        }
+    }
+}
+
+impl Precedence {
+    fn next(self) -> Precedence {
+        if self == Precedence::Primary {
+            panic!("No next precedence available!")
+        }
+        let precedence = self as u8;
+        (precedence + 1).into()
+    }
+
+    fn previous(self) -> Precedence {
+        if self == Precedence::None {
+            panic!("No previous precedence available")
+        }
+        let precedence = self as u8;
+        (precedence -1).into()
+    }
+}
+
 pub struct Compiler<'a, T: Emmitable> {
     chunk: &'a mut T,
     parser: Parser,
+    scanner: Scanner,
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
@@ -18,25 +72,34 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         Self {
             parser: Parser::default(),
             chunk,
+            scanner: Scanner::new("")
         }
     }
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
-        self.chunk.initialize_emiter();
+        self.initialize();
 
         let mut scanner = Scanner::new(source);
         self.advance();
         self.expression();
         self.end_compiler();
         self.consume(TT::EndOfFile, "Expected end of expression");
-        self.chunk.finalize_emiter();
+        self.finalize();
         Ok(())
+    }
+
+    fn initialize(&mut self) {
+        self.chunk.initialize_emiter()
+    }
+
+    fn finalize(&mut self) {
+        self.chunk.finalize_emiter();
     }
 
     fn advance(&mut self) {
         self.parser.previous = self.parser.current.clone();
         loop {
-            self.parser.current = self.scan_token();
+            self.parser.current = self.scanner.scan_token();
             if self.parser.current.ttype != TT::Error {
                 break;
             }
@@ -45,9 +108,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn scan_token(&mut self) -> Token {
-        self.parser.previous.clone()
-    }
 
     fn error_at_current(&self, message: &str) {
         let current: &Token = &self.parser.current.clone();
@@ -78,9 +138,59 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.emit_constant(value.ok().unwrap())
     }
 
-    fn expression(&self) {}
+    fn binary(&mut self) {
+        let op_type = self.parser.previous.ttype;
+        let rule = self.get_rule(op_type);
+        self.parse_precendence(rule.next());
 
-    fn consume(&self, ttype: TT, message: &str) {}
+        match op_type {
+            TT::Plus => { self.emit_byte(OpCode::Add.into())}
+            TT::Minus => { self.emit_byte(OpCode::Substract.into())}
+            TT::Star => { self.emit_byte(OpCode::Multiply.into())}
+            TT::Slash => { self.emit_byte(OpCode::Divide.into())}
+            _ => unreachable!("Should not be here!")
+        }
+    }
+
+    fn get_rule(&self, op: TT) -> Precedence {
+        todo!("Has to be implemented!");
+        Precedence::And
+    }
+
+
+    fn unary(&mut self) {
+        let operator = self.parser.previous.ttype;
+
+        self.parse_precendence(Precedence::Unary);
+
+        if operator == TT::Minus {
+            self.chunk.emit_byte(OpCode::Negate.into(), self.parser.previous.line)
+        } else {
+            unreachable!("should not happen")
+        }
+    }
+
+    fn parse_precendence(&mut self, precedence: Precedence) {
+        todo!("Pratt parser missing")
+    } 
+    
+    fn expression(&mut self) {
+        self.parse_precendence(Precedence::Assignment)
+    }
+
+    fn grouping(&mut self) {
+        self.expression();
+        self.consume(TT::RightParen, "Expected ')' after expression.")
+    }
+
+    fn consume(&mut self, ttype: TT, message: &str) {
+        if self.parser.current.ttype == ttype {
+            self.advance();
+            return
+        }
+
+        self.error_at_current(message)
+    }
 
     fn emit_byte(&mut self, byte: u8) {
         self.chunk.emit_byte(byte, self.parser.previous.line)
@@ -104,5 +214,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn end_compiler(&mut self) {
         self.emit_return()
     }
+
+
 
 }
