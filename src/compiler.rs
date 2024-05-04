@@ -1,5 +1,5 @@
 use crate::{chunk::Chunk, scanner::*, token::*, value::Value, Emmitable, InterpretResult, OpCodable, OpCode};
-use std::{cell::RefCell, io::LineWriter};
+use std::{cell::RefCell};
 
 #[derive(Default)]
 pub struct Parser {
@@ -7,7 +7,6 @@ pub struct Parser {
     current: Token,
     had_error: RefCell<bool>,
 }
-#[derive(Clone)]
 struct ParseRule<'a, T>
 where
     T: Emmitable,
@@ -15,6 +14,24 @@ where
     precedence: Precedence,
     prefix: Option<Box<fn(&mut Compiler<'a, T>)>>,
     infix: Option<Box<fn(&mut Compiler<'a, T>)>>
+}
+impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
+    fn default() -> ParseRule<'a, T> {
+        Self {
+            precedence: Precedence::None,
+            prefix: None,
+            infix: None,
+        }
+    }
+}
+impl<'a, T: Emmitable> Clone for ParseRule<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            precedence: self.precedence,
+            prefix: self.prefix.clone(),
+            infix: self.infix.clone()
+        }
+    }
 }
 
 
@@ -80,19 +97,38 @@ pub struct Compiler<'a, T: Emmitable> {
 impl<'a, T: Emmitable> Compiler<'a, T> {
     pub fn new(chunk: &'a mut T) -> Self {
         // todo! = when all parse rules are defined, we do not need to insert at the index anymore.
-        let mut rules = vec![ParseRule::<T> {
-            precedence: Precedence::None, 
-            prefix: None,
-            infix: None
-        }];
+        let mut rules = vec![ParseRule::<T> {precedence: Precedence::None, infix: None, prefix: None}; 40];
         rules[TT::LeftParen as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(Box::new(|c: &mut Compiler<'a, T>| c.grouping())),
+            prefix: Some(Box::new(|c| c.grouping())),
             infix: None
         };
         rules[TT::Minus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
-            prefix: None, 
+            prefix: Some(Box::new(|c| c.unary())), 
+            infix: Some(Box::new(|c| c.binary()))
+        };
+        rules[TT::Plus as usize] = ParseRule::<T> {
+            precedence: Precedence::Term,
+            prefix: None,
+            infix:  Some(Box::new(|c| c.binary()))
+        };
+
+        rules[TT::Slash as usize] = ParseRule::<T> {
+            precedence: Precedence::Factor,
+            prefix: None,
+            infix:  Some(Box::new(|c| c.binary()))
+        };
+
+        rules[TT::Star as usize] = ParseRule::<T> {
+            precedence: Precedence::Factor,
+            prefix: None,
+            infix:  Some(Box::new(|c| c.binary()))
+        };
+
+        rules[TT::Number as usize] = ParseRule::<T> {
+            precedence: Precedence::None,
+            prefix: Some(Box::new(|c| c.number())),
             infix: None
         };
         Self {
@@ -178,25 +214,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             _ => unreachable!("Should not be here!")
         }
     }
-
-    fn get_rule(&mut self, op: TT) -> ParseRule<T> {
-        match op {
-            TT::LeftParen => ParseRule {
-                prefix: Some(Box::new(|c| c.grouping())),
-                infix: None, 
-                precedence: Precedence::None
-            },            
-
-
-            _ => ParseRule {
-                infix: None, 
-                prefix: None, 
-                precedence: Precedence::None
-            }
-
-        }
-    }
-
 
     fn unary(&mut self) {
         let operator = self.parser.previous.ttype;
