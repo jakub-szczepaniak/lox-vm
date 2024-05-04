@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, scanner::*, token::*, value::Value, Emmitable, InterpretResult, OpCode};
+use crate::{chunk::Chunk, scanner::*, token::*, value::Value, Emmitable, InterpretResult, OpCodable, OpCode};
 use std::{cell::RefCell, io::LineWriter};
 
 #[derive(Default)]
@@ -7,9 +7,18 @@ pub struct Parser {
     current: Token,
     had_error: RefCell<bool>,
 }
+#[derive(Clone)]
+struct ParseRule<'a, T>
+where
+    T: Emmitable,
+{
+    precedence: Precedence,
+    prefix: Option<Box<fn(&mut Compiler<'a, T>)>>,
+    infix: Option<Box<fn(&mut Compiler<'a, T>)>>
+}
 
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum Precedence {
     None = 0, 
     Assignment,
@@ -38,7 +47,7 @@ impl From<u8> for Precedence {
             8 => Precedence::Unary, 
             9 => Precedence::Call, 
             10 => Precedence::Primary,
-            _ => unimplemented!("Should never happen!")
+            _ => panic!("Should never happen!")
         }
     }
 }
@@ -65,14 +74,32 @@ pub struct Compiler<'a, T: Emmitable> {
     chunk: &'a mut T,
     parser: Parser,
     scanner: Scanner,
+    rules: Vec<ParseRule<'a, T>>
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
     pub fn new(chunk: &'a mut T) -> Self {
+        // todo! = when all parse rules are defined, we do not need to insert at the index anymore.
+        let mut rules = vec![ParseRule::<T> {
+            precedence: Precedence::None, 
+            prefix: None,
+            infix: None
+        }];
+        rules[TT::LeftParen as usize] = ParseRule::<T> {
+            precedence: Precedence::None,
+            prefix: Some(Box::new(|c: &mut Compiler<'a, T>| c.grouping())),
+            infix: None
+        };
+        rules[TT::Minus as usize] = ParseRule::<T> {
+            precedence: Precedence::Term,
+            prefix: None, 
+            infix: None
+        };
         Self {
             parser: Parser::default(),
             chunk,
-            scanner: Scanner::new("")
+            scanner: Scanner::new(""),
+            rules
         }
     }
 
@@ -140,21 +167,34 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn binary(&mut self) {
         let op_type = self.parser.previous.ttype;
-        let rule = self.get_rule(op_type);
-        self.parse_precendence(rule.next());
+        let rule = &self.rules[op_type as usize];
+        self.parse_precendence(rule.precedence.next());
 
         match op_type {
-            TT::Plus => { self.emit_byte(OpCode::Add.into())}
-            TT::Minus => { self.emit_byte(OpCode::Substract.into())}
-            TT::Star => { self.emit_byte(OpCode::Multiply.into())}
-            TT::Slash => { self.emit_byte(OpCode::Divide.into())}
+            TT::Plus =>  self.emit_byte(OpCode::Add.into()),
+            TT::Minus =>  self.emit_byte(OpCode::Substract.into()),
+            TT::Star =>  self.emit_byte(OpCode::Multiply.into()),
+            TT::Slash =>  self.emit_byte(OpCode::Divide.into()),
             _ => unreachable!("Should not be here!")
         }
     }
 
-    fn get_rule(&self, op: TT) -> Precedence {
-        todo!("Has to be implemented!");
-        Precedence::And
+    fn get_rule(&mut self, op: TT) -> ParseRule<T> {
+        match op {
+            TT::LeftParen => ParseRule {
+                prefix: Some(Box::new(|c| c.grouping())),
+                infix: None, 
+                precedence: Precedence::None
+            },            
+
+
+            _ => ParseRule {
+                infix: None, 
+                prefix: None, 
+                precedence: Precedence::None
+            }
+
+        }
     }
 
 
