@@ -39,9 +39,14 @@ impl<T: Emmitable + OpCodable> VM<T> {
         self.chunk.reset();
         let mut compiler = Compiler::new(&mut self.chunk);
         compiler.compile(source)?;
+         #[cfg(feature = "debug_print_code")]
+        if !compiler.had_error() {
+            self.chunk.disassemble("Debug", &mut std::io::stdout());
+        }
 
         self.ip = 0;
         self.run()
+
     }
 
     fn run(&mut self) -> Result<(), InterpretResult> {

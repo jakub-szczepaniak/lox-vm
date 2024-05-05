@@ -30,6 +30,7 @@ pub trait OpCodable {
     fn read(&self, ip: usize) -> OpCode;
     fn read_constant(&self, index: usize) -> Value;
     fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize;
+    fn disassemble(&self, chunk_name: &str, output: &mut impl Write);
     fn reset(&mut self);
 }
 
@@ -60,15 +61,6 @@ impl Chunk {
 
     pub fn get_constant(&self, index: usize) -> Value {
         self.constants.read_at(index)
-    }
-
-    pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
-        writeln!(output, "=={}==", chunk_name).unwrap();
-
-        let mut offset: usize = 0;
-        while offset < self.code.len() {
-            offset = self.disassemble_instruction(offset, output)
-        }
     }
 
     fn simple_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
@@ -107,6 +99,14 @@ impl OpCodable for Chunk {
         self.code = Vec::new();
         self.lines = Vec::new();
         self.constants.free();
+    }
+    fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
+        writeln!(output, "=={}==", chunk_name).unwrap();
+
+        let mut offset: usize = 0;
+        while offset < self.code.len() {
+            offset = self.disassemble_instruction(offset, output)
+        }
     }
     fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
         write!(output, "{offset:04}").unwrap();

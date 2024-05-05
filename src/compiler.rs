@@ -94,6 +94,7 @@ pub struct Compiler<'a, T: Emmitable> {
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
+    
     pub fn new(chunk: &'a mut T) -> Self {
         // todo! = when all parse rules are defined, we do not need to insert at the index anymore.
         let mut rules = vec![
@@ -144,6 +145,10 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             rules,
         }
     }
+
+    pub fn had_error(&self) -> bool {
+        *self.parser.had_error.borrow()
+    }    
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
         self.initialize();
@@ -285,5 +290,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn end_compiler(&mut self) {
         self.emit_return()
+       
     }
 }
