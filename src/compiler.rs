@@ -237,7 +237,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         if let Some(prefix_rule) = &self.rules[self.parser.previous.ttype as usize].prefix {
             prefix_rule(self);
 
-            while precedence < self.rules[self.parser.current.ttype as usize].precedence {
+            while precedence <= self.rules[self.parser.current.ttype as usize].precedence {
                 self.advance();
                 if let Some(infix_rule) = &self.rules[self.parser.previous.ttype as usize].infix {
                     infix_rule(self);
