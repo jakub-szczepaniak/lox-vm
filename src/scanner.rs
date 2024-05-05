@@ -13,7 +13,6 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(source: &str) -> Scanner {
-        dbg!(source.chars().collect::<Vec<char>>().len());
         Scanner {
             source: source.chars().collect::<Vec<char>>(),
             line: 1,
@@ -78,7 +77,6 @@ impl Scanner {
     }
     fn advance(&mut self) -> char {
         self.current += 1;
-        dbg!(self.source[self.current -1]);
         self.source[self.current - 1]
     }
 

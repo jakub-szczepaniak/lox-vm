@@ -141,8 +141,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
         self.initialize();
-         self.scanner = Scanner::new(source);
-        dbg!(&self.scanner.source);
+        self.scanner = Scanner::new(source);
         self.advance();
         self.expression();
         self.end_compiler();
