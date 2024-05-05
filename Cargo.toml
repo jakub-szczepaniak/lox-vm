@@ -17,3 +17,4 @@ rstest = "0.18.2"
 
 [features]
 debug_trace_execution = []
+default = ["debug_trace_execution"]
