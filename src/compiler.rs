@@ -12,8 +12,8 @@ where
     T: Emmitable,
 {
     precedence: Precedence,
-    prefix: Option<Box<fn(&mut Compiler<'a, T>)>>,
-    infix: Option<Box<fn(&mut Compiler<'a, T>)>>
+    prefix: Option<fn(&mut Compiler<'a, T>)>,
+    infix: Option<fn(&mut Compiler<'a, T>)>
 }
 impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
     fn default() -> ParseRule<'a, T> {
@@ -35,7 +35,7 @@ impl<'a, T: Emmitable> Clone for ParseRule<'a, T> {
 }
 
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, PartialOrd)]
 enum Precedence {
     None = 0, 
     Assignment,
@@ -100,35 +100,35 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         let mut rules = vec![ParseRule::<T> {precedence: Precedence::None, infix: None, prefix: None}; 40];
         rules[TT::LeftParen as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(Box::new(|c| c.grouping())),
+            prefix: Some(|c| c.grouping()),
             infix: None
         };
         rules[TT::Minus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
-            prefix: Some(Box::new(|c| c.unary())), 
-            infix: Some(Box::new(|c| c.binary()))
+            prefix: Some(|c| c.unary()), 
+            infix: Some(|c| c.binary())
         };
         rules[TT::Plus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
             prefix: None,
-            infix:  Some(Box::new(|c| c.binary()))
+            infix:  Some(|c| c.binary())
         };
 
         rules[TT::Slash as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix:  Some(Box::new(|c| c.binary()))
+            infix:  Some(|c| c.binary())
         };
 
         rules[TT::Star as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix:  Some(Box::new(|c| c.binary()))
+            infix:  Some(|c| c.binary())
         };
 
         rules[TT::Number as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(Box::new(|c| c.number())),
+            prefix: Some(|c| c.number()),
             infix: None
         };
         Self {
@@ -141,8 +141,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
         self.initialize();
-
-        let mut scanner = Scanner::new(source);
+         self.scanner = Scanner::new(source);
+        dbg!(&self.scanner.source);
         self.advance();
         self.expression();
         self.end_compiler();
@@ -163,6 +163,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parser.previous = self.parser.current.clone();
         loop {
             self.parser.current = self.scanner.scan_token();
+            
             if self.parser.current.ttype != TT::Error {
                 break;
             }
@@ -217,7 +218,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn unary(&mut self) {
         let operator = self.parser.previous.ttype;
-
+        dbg!(&operator);
         self.parse_precendence(Precedence::Unary);
 
         if operator == TT::Minus {
@@ -228,7 +229,19 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn parse_precendence(&mut self, precedence: Precedence) {
-        todo!("Pratt parser missing")
+        self.advance();
+        if let Some(prefix_rule) = &self.rules[self.parser.previous.ttype as usize].prefix {
+            prefix_rule(self);
+
+            while precedence < self.rules[self.parser.current.ttype as usize].precedence {
+                self.advance();
+                if let Some(infix_rule) = &self.rules[self.parser.previous.ttype as usize].infix {
+                    infix_rule(self);
+                }
+            }
+       } else {
+            self.error("Expected expression");
+       }
     } 
     
     fn expression(&mut self) {

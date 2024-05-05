@@ -2,24 +2,23 @@ use aho_corasick::AhoCorasick;
 
 use crate::token::TT;
 use crate::{token::*, value::Value, InterpretResult};
-
+#[derive(Debug)]
 pub struct Scanner {
     pub source: Vec<char>,
     pub line: usize,
     start: usize,
     current: usize,
-    length: usize,
     ac: AhoCorasick,
 }
 
 impl Scanner {
     pub fn new(source: &str) -> Scanner {
+        dbg!(source.chars().collect::<Vec<char>>().len());
         Scanner {
             source: source.chars().collect::<Vec<char>>(),
             line: 1,
             current: 0,
             start: 0,
-            length: source.len(),
             ac: AhoCorasick::new([
                 "and", "class", "else", "false", "for", "fun", "if", "nil", "or", "print",
                 "return", "super", "this", "true", "var", "while",
@@ -30,7 +29,6 @@ impl Scanner {
 
     pub fn scan_token(&mut self) -> Token {
         self.skip_whitespace();
-
         self.start = self.current;
 
         if self.is_at_end() {
@@ -80,6 +78,7 @@ impl Scanner {
     }
     fn advance(&mut self) -> char {
         self.current += 1;
+        dbg!(self.source[self.current -1]);
         self.source[self.current - 1]
     }
 
@@ -256,7 +255,7 @@ impl Scanner {
         )
     }
     fn is_at_end(&self) -> bool {
-        self.current == self.length
+        self.current == self.source.len()
     }
 }
 
@@ -265,4 +264,24 @@ mod tests {
 
     use super::*;
     use rstest::*;
+
+    #[rstest]
+    fn test_non_empty_scan() {
+        let source = "-1";
+        let scanner = Scanner::new(&source);
+
+        assert_eq!(scanner.source.len(), 2);
+    }
+
+    #[rstest]
+    fn test_scaning_tokens() {
+        let source = "-1";
+        let mut scanner = Scanner::new(&source);
+        let mut token = scanner.scan_token();
+        assert_eq!(token.ttype, TT::Minus);
+        token = scanner.scan_token();
+        assert_eq!(token.ttype, TT::Number);
+        token = scanner.scan_token();
+        assert_eq!(token.ttype, TT::EndOfFile);
+    }
 }

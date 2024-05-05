@@ -66,27 +66,6 @@ impl Chunk {
             offset = self.disassemble_instruction(offset, output)
         }
     }
-    pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
-        write!(output, "{offset:04}").unwrap();
-
-        if offset > 0 && self.lines[offset] == self.lines[offset - 1] {
-            write!(output, "    | ").unwrap();
-        } else {
-            write!(output, " {:4} ", self.lines[offset]).unwrap();
-        }
-        let instruction = &self.code[offset].into();
-        match instruction {
-            OpCode::Return => self.simple_instruction("OP_RETURN", offset, output),
-            OpCode::Negate => self.simple_instruction("OP_NEGATE", offset, output),
-            OpCode::Add => self.simple_instruction("OP_ADD", offset, output),
-            OpCode::Substract => self.simple_instruction("OP_SUBSTRACT", offset, output),
-            OpCode::Multiply => self.simple_instruction("OP_MULTIPLY", offset, output),
-            OpCode::Divide => self.simple_instruction("OP_DIVIDE", offset, output),
-            OpCode::Constant => {
-                self.constant_instruction("OP_CONSTANT", offset, output)
-            }
-        }
-    }
 
     fn simple_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
         writeln!(output, "{name}").unwrap();
@@ -131,6 +110,27 @@ impl Emmitable for Chunk {
 
 impl OpCodable for Chunk {
     
+    fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
+        write!(output, "{offset:04}").unwrap();
+
+        if offset > 0 && self.lines[offset] == self.lines[offset - 1] {
+            write!(output, "    | ").unwrap();
+        } else {
+            write!(output, " {:4} ", self.lines[offset]).unwrap();
+        }
+        let instruction = &self.code[offset].into();
+        match instruction {
+            OpCode::Return => self.simple_instruction("OP_RETURN", offset, output),
+            OpCode::Negate => self.simple_instruction("OP_NEGATE", offset, output),
+            OpCode::Add => self.simple_instruction("OP_ADD", offset, output),
+            OpCode::Substract => self.simple_instruction("OP_SUBSTRACT", offset, output),
+            OpCode::Multiply => self.simple_instruction("OP_MULTIPLY", offset, output),
+            OpCode::Divide => self.simple_instruction("OP_DIVIDE", offset, output),
+            OpCode::Constant => {
+                self.constant_instruction("OP_CONSTANT", offset, output)
+            }
+        }
+    }
     fn read(&self, ip: usize) -> OpCode {
         self.code[ip].into()
     }
@@ -169,7 +169,6 @@ impl From<OpCode> for u8 {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::btree_map::OccupiedEntry;
 
     use super::*;
     use rstest::*;

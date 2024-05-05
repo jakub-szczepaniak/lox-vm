@@ -1,5 +1,5 @@
 use crate::{chunk::*, compiler::*, value::Value};
-
+use std::io::Write;
 use std::fmt::Debug;
 use thiserror::*;
 #[derive(thiserror::Error, PartialEq)]
@@ -37,7 +37,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         let mut compiler = Compiler::new(&mut self.chunk);
-
+        dbg!(source);
         compiler.compile(source)?;
 
         self.ip = 0;
@@ -118,6 +118,8 @@ pub trait Emmitable {
 pub trait OpCodable {
     fn read(&self, ip: usize) -> OpCode;
     fn read_constant(&self, index: usize) -> Value;
+ fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize;
+
 }
 
 #[cfg(test)]
