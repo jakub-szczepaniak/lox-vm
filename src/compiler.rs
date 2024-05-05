@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, scanner::*, token::*, value::Value, Emmitable, InterpretResult, OpCodable, OpCode};
+use crate::{chunk::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::{cell::RefCell};
 
 #[derive(Default)]

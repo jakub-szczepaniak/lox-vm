@@ -3,6 +3,7 @@ use std::{
     path::PathBuf,
 };
 
+use clap::Parser;
 use chunk::*;
 use vm::*;
 mod chunk;
@@ -11,7 +12,6 @@ mod scanner;
 mod token;
 mod value;
 mod vm;
-use clap::Parser;
 
 #[derive(Parser)]
 #[command(version, about, long_about= None)]
