@@ -1,5 +1,6 @@
 use crate::{chunk::*, compiler::*, value::Value};
 use std::fmt::Debug;
+use std::io::Write;
 #[derive(thiserror::Error, PartialEq)]
 pub enum InterpretResult {
     //InterpretOK,
@@ -47,10 +48,12 @@ impl<T: Emmitable + OpCodable> VM<T> {
         loop {
             #[cfg(feature = "debug_trace_execution")]
             {
-                writeln!(&mut std::io::stdout(), "       ").unwrap();
+                writeln!(&mut std::io::stdout(), "").unwrap();
+                write!(&mut std::io::stdout(), "Stack:        ").unwrap();
                 for value in &self.stack {
-                    writeln!(&mut std::io::stdout(), "[ {value} ]").unwrap();
+                    write!(&mut std::io::stdout(), "[ {value} ]").unwrap();
                 }
+                writeln!(&mut std::io::stdout(), "").unwrap();
                 self.chunk
                     .disassemble_instruction(self.ip, &mut std::io::stdout());
             }
