@@ -53,11 +53,6 @@ impl Chunk {
         self.constants.read_at(index)
     }
 
-    pub fn free(&mut self) {
-        self.code = Vec::new();
-        self.lines = Vec::new();
-        self.constants.free();
-    }
     pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
         writeln!(output, "=={}==", chunk_name).unwrap();
 
@@ -110,6 +105,11 @@ impl Emmitable for Chunk {
 
 impl OpCodable for Chunk {
     
+    fn reset(&mut self) {
+        self.code = Vec::new();
+        self.lines = Vec::new();
+        self.constants.free();
+    }
     fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
         write!(output, "{offset:04}").unwrap();
 

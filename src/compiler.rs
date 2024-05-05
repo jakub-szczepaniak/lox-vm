@@ -218,7 +218,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn unary(&mut self) {
         let operator = self.parser.previous.ttype;
-        dbg!(&operator);
         self.parse_precendence(Precedence::Unary);
 
         if operator == TT::Minus {
