@@ -3,8 +3,8 @@ use std::{
     path::PathBuf,
 };
 
-use clap::Parser;
 use chunk::*;
+use clap::Parser;
 use vm::*;
 mod chunk;
 mod compiler;

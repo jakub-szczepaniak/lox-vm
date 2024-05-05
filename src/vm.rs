@@ -102,11 +102,10 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
     fn read_constant(&mut self) -> Value {
         let index = self.chunk.read(self.ip) as usize;
-        self.ip +=1;
+        self.ip += 1;
         self.chunk.read_constant(index)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -124,5 +123,4 @@ mod tests {
 
         assert!(result.is_ok())
     }
-
 }

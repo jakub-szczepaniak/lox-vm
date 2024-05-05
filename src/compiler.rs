@@ -1,5 +1,5 @@
 use crate::{chunk::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
-use std::{cell::RefCell};
+use std::cell::RefCell;
 
 #[derive(Default)]
 pub struct Parser {
@@ -13,7 +13,7 @@ where
 {
     precedence: Precedence,
     prefix: Option<fn(&mut Compiler<'a, T>)>,
-    infix: Option<fn(&mut Compiler<'a, T>)>
+    infix: Option<fn(&mut Compiler<'a, T>)>,
 }
 impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
     fn default() -> ParseRule<'a, T> {
@@ -29,25 +29,24 @@ impl<'a, T: Emmitable> Clone for ParseRule<'a, T> {
         Self {
             precedence: self.precedence,
             prefix: self.prefix.clone(),
-            infix: self.infix.clone()
+            infix: self.infix.clone(),
         }
     }
 }
 
-
 #[derive(PartialEq, Copy, Clone, PartialOrd)]
 enum Precedence {
-    None = 0, 
+    None = 0,
     Assignment,
-    Or, 
-    And, 
+    Or,
+    And,
     Equality,
-    Comparison, 
-    Term, 
-    Factor, 
-    Unary, 
-    Call, 
-    Primary
+    Comparison,
+    Term,
+    Factor,
+    Unary,
+    Call,
+    Primary,
 }
 
 impl From<u8> for Precedence {
@@ -56,15 +55,15 @@ impl From<u8> for Precedence {
             0 => Precedence::None,
             1 => Precedence::Assignment,
             2 => Precedence::Or,
-            3 => Precedence::And, 
-            4 => Precedence::Equality, 
+            3 => Precedence::And,
+            4 => Precedence::Equality,
             5 => Precedence::Comparison,
-            6 => Precedence::Term, 
-            7 => Precedence::Factor, 
-            8 => Precedence::Unary, 
-            9 => Precedence::Call, 
+            6 => Precedence::Term,
+            7 => Precedence::Factor,
+            8 => Precedence::Unary,
+            9 => Precedence::Call,
             10 => Precedence::Primary,
-            _ => panic!("Should never happen!")
+            _ => panic!("Should never happen!"),
         }
     }
 }
@@ -83,7 +82,7 @@ impl Precedence {
             panic!("No previous precedence available")
         }
         let precedence = self as u8;
-        (precedence -1).into()
+        (precedence - 1).into()
     }
 }
 
@@ -91,51 +90,58 @@ pub struct Compiler<'a, T: Emmitable> {
     chunk: &'a mut T,
     parser: Parser,
     scanner: Scanner,
-    rules: Vec<ParseRule<'a, T>>
+    rules: Vec<ParseRule<'a, T>>,
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
     pub fn new(chunk: &'a mut T) -> Self {
         // todo! = when all parse rules are defined, we do not need to insert at the index anymore.
-        let mut rules = vec![ParseRule::<T> {precedence: Precedence::None, infix: None, prefix: None}; 40];
+        let mut rules = vec![
+            ParseRule::<T> {
+                precedence: Precedence::None,
+                infix: None,
+                prefix: None
+            };
+            40
+        ];
         rules[TT::LeftParen as usize] = ParseRule::<T> {
             precedence: Precedence::None,
             prefix: Some(|c| c.grouping()),
-            infix: None
+            infix: None,
         };
         rules[TT::Minus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
-            prefix: Some(|c| c.unary()), 
-            infix: Some(|c| c.binary())
+            prefix: Some(|c| c.unary()),
+            infix: Some(|c| c.binary()),
         };
         rules[TT::Plus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
             prefix: None,
-            infix:  Some(|c| c.binary())
+            infix: Some(|c| c.binary()),
         };
 
         rules[TT::Slash as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix:  Some(|c| c.binary())
+            infix: Some(|c| c.binary()),
         };
 
         rules[TT::Star as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix:  Some(|c| c.binary())
+            infix: Some(|c| c.binary()),
         };
 
         rules[TT::Number as usize] = ParseRule::<T> {
             precedence: Precedence::None,
             prefix: Some(|c| c.number()),
-            infix: None
+            infix: None,
         };
         Self {
             parser: Parser::default(),
             chunk,
             scanner: Scanner::new(""),
-            rules
+            rules,
         }
     }
 
@@ -162,7 +168,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parser.previous = self.parser.current.clone();
         loop {
             self.parser.current = self.scanner.scan_token();
-            
+
             if self.parser.current.ttype != TT::Error {
                 break;
             }
@@ -170,7 +176,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             self.error_at_current(message);
         }
     }
-
 
     fn error_at_current(&self, message: &str) {
         let current: &Token = &self.parser.current.clone();
@@ -207,11 +212,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parse_precendence(rule.precedence.next());
 
         match op_type {
-            TT::Plus =>  self.emit_byte(OpCode::Add.into()),
-            TT::Minus =>  self.emit_byte(OpCode::Substract.into()),
-            TT::Star =>  self.emit_byte(OpCode::Multiply.into()),
-            TT::Slash =>  self.emit_byte(OpCode::Divide.into()),
-            _ => unreachable!("Should not be here!")
+            TT::Plus => self.emit_byte(OpCode::Add.into()),
+            TT::Minus => self.emit_byte(OpCode::Substract.into()),
+            TT::Star => self.emit_byte(OpCode::Multiply.into()),
+            TT::Slash => self.emit_byte(OpCode::Divide.into()),
+            _ => unreachable!("Should not be here!"),
         }
     }
 
@@ -220,7 +225,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parse_precendence(Precedence::Unary);
 
         if operator == TT::Minus {
-            self.chunk.emit_byte(OpCode::Negate.into(), self.parser.previous.line)
+            self.chunk
+                .emit_byte(OpCode::Negate.into(), self.parser.previous.line)
         } else {
             unreachable!("should not happen")
         }
@@ -237,11 +243,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
                     infix_rule(self);
                 }
             }
-       } else {
+        } else {
             self.error("Expected expression");
-       }
-    } 
-    
+        }
+    }
+
     fn expression(&mut self) {
         self.parse_precendence(Precedence::Assignment)
     }
@@ -254,7 +260,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn consume(&mut self, ttype: TT, message: &str) {
         if self.parser.current.ttype == ttype {
             self.advance();
-            return
+            return;
         }
 
         self.error_at_current(message)
@@ -265,10 +271,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn emit_constant(&mut self, val: Value) {
-        self.chunk.emit_constant(val, self.parser.previous.line)   
+        self.chunk.emit_constant(val, self.parser.previous.line)
     }
-
-
 
     fn emit_bytes(&mut self, byte1: OpCode, byte2: u8) {
         self.emit_byte(byte1.into());
@@ -282,7 +286,4 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn end_compiler(&mut self) {
         self.emit_return()
     }
-
-
-
 }

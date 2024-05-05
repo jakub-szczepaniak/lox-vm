@@ -33,12 +33,10 @@ pub trait OpCodable {
     fn reset(&mut self);
 }
 
-
-
 pub struct Chunk {
     code: Vec<u8>,
     lines: Vec<usize>,
-    constants: ValueArray
+    constants: ValueArray,
 }
 
 impl Chunk {
@@ -46,21 +44,21 @@ impl Chunk {
         Self {
             code: Vec::new(),
             lines: Vec::new(),
-            constants: ValueArray::new()
+            constants: ValueArray::new(),
         }
     }
 
-    pub fn write(&mut self, byte: u8, line: usize){
+    pub fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
     }
-    
+
     pub fn write_opcode(&mut self, code: OpCode, line: usize) {
         self.code.push(code.into());
         self.lines.push(line)
     }
 
-    pub fn add_constant(&mut self, value: Value) -> Option<u8>{
+    pub fn add_constant(&mut self, value: Value) -> Option<u8> {
         let index = self.constants.write(value);
         u8::try_from(index).ok()
     }
@@ -83,44 +81,34 @@ impl Chunk {
         offset + 1
     }
 
-    fn constant_instruction(
-        &self,
-        name: &str,
-        offset: usize,
-        output: &mut impl Write,
-    ) -> usize {
-        let constant_index = self.code[offset+1];
+    fn constant_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
+        let constant_index = self.code[offset + 1];
         let value = self.constants.read_at(constant_index as usize);
         write!(output, "{name:-16} {offset:4} '").unwrap();
         write!(output, "{value}").unwrap();
         writeln!(output, "'").unwrap();
         offset + 2
     }
-
 }
 
 impl Emmitable for Chunk {
     fn emit_byte(&mut self, byte: u8, line: usize) {
         self.write(byte, line)
     }
-    fn emit_bytes(&mut self,byte1: OpCode, byte2: u8, line: usize) {
+    fn emit_bytes(&mut self, byte1: OpCode, byte2: u8, line: usize) {
         self.write(byte1.into(), line);
         self.write(byte2, line);
     }
     fn emit_constant(&mut self, value: Value, line: usize) {
-        if let Some(index) = self.add_constant(value){
+        if let Some(index) = self.add_constant(value) {
             self.emit_bytes(OpCode::Constant, index, line)
         } else {
             ()
         }
     }
-
-
 }
 
-
 impl OpCodable for Chunk {
-    
     fn reset(&mut self) {
         self.code = Vec::new();
         self.lines = Vec::new();
@@ -142,15 +130,13 @@ impl OpCodable for Chunk {
             OpCode::Substract => self.simple_instruction("OP_SUBSTRACT", offset, output),
             OpCode::Multiply => self.simple_instruction("OP_MULTIPLY", offset, output),
             OpCode::Divide => self.simple_instruction("OP_DIVIDE", offset, output),
-            OpCode::Constant => {
-                self.constant_instruction("OP_CONSTANT", offset, output)
-            }
+            OpCode::Constant => self.constant_instruction("OP_CONSTANT", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
         self.code[ip].into()
     }
-    fn read_constant(&self, index:usize) -> Value {
+    fn read_constant(&self, index: usize) -> Value {
         self.get_constant(index)
     }
 }
@@ -174,11 +160,11 @@ impl From<OpCode> for u8 {
         match value {
             OpCode::Constant => 0,
             OpCode::Return => 1,
-            OpCode::Negate => 2, 
-            OpCode::Add => 3, 
-            OpCode::Substract => 4, 
-            OpCode::Multiply => 5, 
-            OpCode::Divide => 6
+            OpCode::Negate => 2,
+            OpCode::Add => 3,
+            OpCode::Substract => 4,
+            OpCode::Multiply => 5,
+            OpCode::Divide => 6,
         }
     }
 }
@@ -237,8 +223,7 @@ mod tests {
         let mut output = Vec::new();
         chunk.write_opcode(OpCode::Constant, 1);
         let const_index = chunk.add_constant(12.4).unwrap();
-        chunk.write(const_index, 1);        
-        
+        chunk.write(const_index, 1);
 
         chunk.disassemble("test chunk", &mut output);
 
