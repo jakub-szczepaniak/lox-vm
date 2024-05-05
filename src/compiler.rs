@@ -28,8 +28,8 @@ impl<'a, T: Emmitable> Clone for ParseRule<'a, T> {
     fn clone(&self) -> Self {
         Self {
             precedence: self.precedence,
-            prefix: self.prefix.clone(),
-            infix: self.infix.clone(),
+            prefix: self.prefix,
+            infix: self.infix,
         }
     }
 }

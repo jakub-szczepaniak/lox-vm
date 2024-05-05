@@ -1,6 +1,5 @@
 use crate::{chunk::*, compiler::*, value::Value};
 use std::fmt::Debug;
-use thiserror::*;
 #[derive(thiserror::Error, PartialEq)]
 pub enum InterpretResult {
     //InterpretOK,

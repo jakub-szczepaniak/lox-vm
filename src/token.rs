@@ -1,6 +1,5 @@
 use crate::value::Value;
 use std::fmt::Display;
-use std::str::Utf8Error;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal {
