@@ -4,8 +4,8 @@ use std::io::Write;
 #[derive(Debug, PartialEq, Clone)]
 pub enum OpCode {
     Constant,
-    Negate,
     Return,
+    Negate,
     Add,
     Substract,
     Multiply,
@@ -51,11 +51,6 @@ impl Chunk {
     pub fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
-    }
-
-    pub fn write_opcode(&mut self, code: OpCode, line: usize) {
-        self.code.push(code.into());
-        self.lines.push(line)
     }
 
     pub fn add_constant(&mut self, value: Value) -> Option<u8> {
@@ -178,14 +173,14 @@ mod tests {
     #[rstest]
     fn test_write_opcode_to_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::Return, 123);
+        chunk.write(OpCode::Return as u8, 123);
         assert_eq!(chunk.code.len(), 1)
     }
 
     #[rstest]
     fn test_write_constant_to_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::Constant, 1);
+        chunk.write(OpCode::Constant as u8, 1);
         let const_index = chunk.add_constant(1.2).unwrap();
         chunk.write(const_index, 1);
         assert_eq!(chunk.code.len(), 2)
@@ -194,7 +189,7 @@ mod tests {
     #[rstest]
     fn test_free_the_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::Return, 23);
+        chunk.write(OpCode::Return as u8, 23);
         chunk.add_constant(1.2);
         chunk.reset();
         assert_eq!(chunk.code.len(), 0)
@@ -211,7 +206,7 @@ mod tests {
         let mut output = Vec::new();
         let mut chunk = Chunk::new();
 
-        chunk.write_opcode(actual, line);
+        chunk.write(actual as u8, line);
 
         chunk.disassemble(chunk_name, &mut output);
         assert_eq!(output, expected)
@@ -221,7 +216,7 @@ mod tests {
     fn test_disassemble_chunk_with_const() {
         let mut chunk = Chunk::new();
         let mut output = Vec::new();
-        chunk.write_opcode(OpCode::Constant, 1);
+        chunk.write(OpCode::Constant as u8, 1);
         let const_index = chunk.add_constant(12.4).unwrap();
         chunk.write(const_index, 1);
 
@@ -236,7 +231,7 @@ mod tests {
     #[rstest]
     fn test_reading_byte_from_chunk() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::Return, 1);
+        chunk.write(OpCode::Return as u8, 1);
 
         let result = chunk.read(0);
 

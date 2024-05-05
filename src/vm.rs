@@ -102,7 +102,9 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
     fn read_constant(&mut self) -> Value {
         let index = self.chunk.read(self.ip) as usize;
+        dbg!(index);
         self.ip += 1;
+        dbg!(&self.ip);
         self.chunk.read_constant(index)
     }
 }
