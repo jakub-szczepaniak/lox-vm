@@ -194,7 +194,7 @@ mod tests {
         let mut chunk = Chunk::new();
         chunk.write_opcode(OpCode::Return, 23);
         chunk.add_constant(1.2);
-        chunk.free();
+        chunk.reset();
         assert_eq!(chunk.code.len(), 0)
     }
 
