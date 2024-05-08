@@ -96,7 +96,6 @@ pub struct Compiler<'a, T: Emmitable> {
 impl<'a, T: Emmitable> Compiler<'a, T> {
     
     pub fn new(chunk: &'a mut T) -> Self {
-        // todo! = when all parse rules are defined, we do not need to insert at the index anymore.
         let mut rules = vec![
             ParseRule::<T> {
                 precedence: Precedence::None,
@@ -207,8 +206,14 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn number(&mut self) {
-        let value = self.parser.previous.lexeme.parse::<Value>();
-        self.emit_constant(value.ok().unwrap())
+        if let Some(literal) = &self.parser.previous.literal {
+            match literal {
+                Literal::Number(v) => self.emit_constant(Value::Number(*v)),
+                Literal::Boolean(b) => self.emit_constant(Value::Boolean(*b)),
+                Literal::Nil => self.emit_constant(Value::Nil),
+                Literal::String(s) => todo!()
+            }
+        }
     }
 
     fn binary(&mut self) {

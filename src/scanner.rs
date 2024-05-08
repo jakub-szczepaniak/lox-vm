@@ -210,7 +210,7 @@ impl Scanner {
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         match ttype {
             TT::Number => {
-                let value: Value = lexeme.parse().unwrap();
+                let value: f64 = lexeme.parse().unwrap();
                 literal = Some(Literal::Number(value));
             }
             TT::String => {

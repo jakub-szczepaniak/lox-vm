@@ -1,10 +1,9 @@
-use crate::value::Value;
 use std::fmt::Display;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal {
     String(String),
-    Number(Value),
+    Number(f64),
     Boolean(bool),
     Nil,
 }

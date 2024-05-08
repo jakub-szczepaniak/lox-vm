@@ -86,13 +86,21 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     fn divide_op(&mut self) -> Result<(), InterpretResult> {
         let b = self.stack.pop().unwrap();
+        
         match b {
-            0.0 => Err(InterpretResult::RuntimeError),
-            _ => {
+            Value::Number(a) => {
+                if a == 0.0 {
+
+                return Err(InterpretResult::RuntimeError);
+                } else {
+                    
                 let a = self.stack.pop().unwrap();
                 self.stack.push(a / b);
-                Ok(())
+                return Ok(());
+                }
             }
+
+        _ => Err(InterpretResult::RuntimeError)
         }
     }
 
