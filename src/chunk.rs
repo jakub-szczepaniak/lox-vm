@@ -180,7 +180,7 @@ mod tests {
     fn test_write_constant_to_chunk() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.add_constant(1.2).unwrap();
+        let const_index = chunk.add_constant(Value::Number(1.2)).unwrap();
         chunk.write(const_index, 1);
         assert_eq!(chunk.code.len(), 2)
     }
@@ -189,7 +189,7 @@ mod tests {
     fn test_free_the_chunk() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::Return as u8, 23);
-        chunk.add_constant(1.2);
+        chunk.add_constant(Value::Number(1.2));
         chunk.reset();
         assert_eq!(chunk.code.len(), 0)
     }
@@ -216,7 +216,7 @@ mod tests {
         let mut chunk = Chunk::new();
         let mut output = Vec::new();
         chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.add_constant(12.4).unwrap();
+        let const_index = chunk.add_constant(Value::Number(12.4)).unwrap();
         chunk.write(const_index, 1);
 
         chunk.disassemble("test chunk", &mut output);

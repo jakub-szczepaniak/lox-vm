@@ -130,7 +130,7 @@ mod tests {
     #[rstest]
     fn test_run_the_chunk_by_vm() {
         let mut chunk = Chunk::new();
-        chunk.emit_constant(1.0, 1);
+        chunk.emit_constant(Value::Number(1.0), 1);
         chunk.emit_byte(OpCode::Return.into(), 1);
         let mut vm = VM::new(chunk);
 
