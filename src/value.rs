@@ -8,6 +8,16 @@ pub enum Value {
     Nil
 }
 
+impl Value {
+     pub fn is_number(&self) -> bool {
+        if let Value::Number(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -97,4 +107,6 @@ impl ValueArray {
     pub fn read_at(&self, index: usize) -> Value {
         self.values[index]
     }
+
+   
 }

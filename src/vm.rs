@@ -1,5 +1,5 @@
 use crate::{chunk::*, compiler::*, value::Value};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::io::Write;
 #[derive(thiserror::Error, PartialEq)]
 pub enum InterpretResult {
@@ -65,44 +65,66 @@ impl<T: Emmitable + OpCodable> VM<T> {
             let instruction = self.read_opcode();
             match instruction {
                 OpCode::Return => {
-                    println!("{}", self.stack.pop().unwrap());
+                    println!("{}", self.pop());
                     return Ok(());
                 }
                 OpCode::Constant => {
                     let constant = self.read_constant();
-                    self.stack.push(constant);
+                    self.push(constant);
                 }
                 OpCode::Negate => {
-                    let val = self.stack.pop().unwrap();
-                    self.stack.push(-val)
+                    self.validate_unary()?;
+                    let val = self.pop();
+                    self.push(-val)
                 }
-                OpCode::Add => self.binary_op(|a, b| a + b),
-                OpCode::Substract => self.binary_op(|a, b| a - b),
-                OpCode::Multiply => self.binary_op(|a, b| a * b),
-                OpCode::Divide => self.divide_op()?,
+                OpCode::Add => {
+                    self.validate_binary()?;
+                    self.binary_op(|a, b| a + b)
+                }
+                OpCode::Substract => {
+                    self.validate_binary()?;
+                    self.binary_op(|a, b| a - b)
+                }
+                OpCode::Multiply => {
+                    self.validate_binary()?;
+                    self.binary_op(|a, b| a * b)
+                }
+                OpCode::Divide => {
+                    self.validate_binary()?;
+                    self.divide_op()?
+                }
             }
         }
+    }
+
+    fn validate_unary(&mut self) -> Result<(), InterpretResult> {
+        if !self.peek(0).is_number() {
+            self.runtime_error("Operand must be a number")
+        } else {
+            Ok(())
+        }
+    }
+    fn validate_binary(&mut self) -> Result<(), InterpretResult> {
+        if !self.peek(0).is_number() || !self.peek(1).is_number() {
+           self.runtime_error("Both operands need to be numbers")
+        } else {
+            Ok(())
+        }
+        
     }
 
     fn divide_op(&mut self) -> Result<(), InterpretResult> {
-        let b = self.stack.pop().unwrap();
-        
-        match b {
-            Value::Number(a) => {
-                if a == 0.0 {
-
-                return Err(InterpretResult::RuntimeError);
-                } else {
-                    
-                let a = self.stack.pop().unwrap();
-                self.stack.push(a / b);
-                return Ok(());
-                }
+        if let Value::Number(divider) = self.peek(0) {
+            if divider == 0.0 {
+            return self.runtime_error("Cannot divide by 0!")
             }
-
-        _ => Err(InterpretResult::RuntimeError)
         }
-    }
+        let b = self.pop();
+        let a = self.pop();
+        self.push(a / b);
+        return Ok(());
+                
+        }
 
     fn binary_op(&mut self, operation: fn(a: Value, b: Value) -> Value) {
         let b = self.stack.pop().unwrap();
@@ -119,6 +141,30 @@ impl<T: Emmitable + OpCodable> VM<T> {
         let index = self.chunk.read(self.ip) as usize;
         self.ip += 1;
         self.chunk.read_constant(index)
+    }
+
+    fn runtime_error(&mut self,  message: &str) -> Result<(), InterpretResult> {
+        let line = self.chunk.read_line(self.ip-1);
+        
+        eprintln!("{}", message);
+        eprintln!("[line {}] in script", line);
+        self.reset_stack();
+        Err(InterpretResult::RuntimeError)
+    }
+
+    fn reset_stack(&mut self) {
+        self.stack.clear();
+    }
+
+    fn peek(&self, distance: usize) -> Value {
+        self.stack[self.stack.len() -distance - 1]
+    }
+
+    fn pop(&mut self) -> Value {
+        self.stack.pop().unwrap()
+    }
+    fn push(&mut self, val: Value) {
+        self.stack.push(val)
     }
 }
 

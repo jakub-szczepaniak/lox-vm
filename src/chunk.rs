@@ -32,6 +32,7 @@ pub trait OpCodable {
     fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize;
     fn disassemble(&self, chunk_name: &str, output: &mut impl Write);
     fn reset(&mut self);
+    fn read_line(&self, index: usize) -> usize;
 }
 
 pub struct Chunk {
@@ -61,6 +62,10 @@ impl Chunk {
 
     pub fn get_constant(&self, index: usize) -> Value {
         self.constants.read_at(index)
+    }
+
+    pub fn get_line(&self, index: usize) -> usize { 
+        self.lines[index]
     }
 
     fn simple_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
@@ -132,6 +137,9 @@ impl OpCodable for Chunk {
     }
     fn read_constant(&self, index: usize) -> Value {
         self.get_constant(index)
+    }
+    fn read_line(&self, index: usize) -> usize {
+        self.get_line(index)
     }
 }
 impl From<u8> for OpCode {
