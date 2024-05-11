@@ -57,7 +57,6 @@ pub enum TokenType {
     Else,
     Fun,
     For,
-    If,
     Or,
     Print,
     Return,
@@ -66,6 +65,7 @@ pub enum TokenType {
     Var,
     While,
     Break,
+    If
 }
 
 impl Display for TT {
@@ -93,6 +93,8 @@ impl Display for TT {
             TT::Constant => write!(f, "Constant"),
             TT::Identifier => write!(f, "Identifier"),
             TT::And => write!(f, "And"),
+            TT::If => write!(f, "If"),
+            TT::Break => write!(f, "Break"),
             _ => write!(f, ""),
         }
     }
