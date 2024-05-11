@@ -39,14 +39,13 @@ impl<T: Emmitable + OpCodable> VM<T> {
         self.chunk.reset();
         let mut compiler = Compiler::new(&mut self.chunk);
         compiler.compile(source)?;
-         #[cfg(feature = "debug_print_code")]
+        #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
             self.chunk.disassemble("Debug", &mut std::io::stdout());
         }
 
         self.ip = 0;
         self.run()
-
     }
 
     fn run(&mut self) -> Result<(), InterpretResult> {
@@ -106,25 +105,23 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
     fn validate_binary(&mut self) -> Result<(), InterpretResult> {
         if !self.peek(0).is_number() || !self.peek(1).is_number() {
-           self.runtime_error("Both operands need to be numbers")
+            self.runtime_error("Both operands need to be numbers")
         } else {
             Ok(())
         }
-        
     }
 
     fn divide_op(&mut self) -> Result<(), InterpretResult> {
         if let Value::Number(divider) = self.peek(0) {
             if divider == 0.0 {
-            return self.runtime_error("Cannot divide by 0!")
+                return self.runtime_error("Cannot divide by 0!");
             }
         }
         let b = self.pop();
         let a = self.pop();
         self.push(a / b);
         return Ok(());
-                
-        }
+    }
 
     fn binary_op(&mut self, operation: fn(a: Value, b: Value) -> Value) {
         let b = self.stack.pop().unwrap();
@@ -143,9 +140,9 @@ impl<T: Emmitable + OpCodable> VM<T> {
         self.chunk.read_constant(index)
     }
 
-    fn runtime_error(&mut self,  message: &str) -> Result<(), InterpretResult> {
-        let line = self.chunk.read_line(self.ip-1);
-        
+    fn runtime_error(&mut self, message: &str) -> Result<(), InterpretResult> {
+        let line = self.chunk.read_line(self.ip - 1);
+
         eprintln!("{}", message);
         eprintln!("[line {}] in script", line);
         self.reset_stack();
@@ -157,7 +154,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
 
     fn peek(&self, distance: usize) -> Value {
-        self.stack[self.stack.len() -distance - 1]
+        self.stack[self.stack.len() - distance - 1]
     }
 
     fn pop(&mut self) -> Value {

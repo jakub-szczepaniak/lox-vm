@@ -1,15 +1,15 @@
 use std::fmt::Display;
-use std::ops::{Add, Div, Mul, Sub, Neg};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
-    Nil
+    Nil,
 }
 
 impl Value {
-     pub fn is_number(&self) -> bool {
+    pub fn is_number(&self) -> bool {
         if let Value::Number(_) = self {
             true
         } else {
@@ -23,8 +23,8 @@ impl Display for Value {
         match self {
             Value::Boolean(v) => write!(f, "{v}"),
             Value::Number(v) => write!(f, "{v}"),
-            Value::Nil => write!(f, "Nil")
-        }        
+            Value::Nil => write!(f, "Nil"),
+        }
     }
 }
 
@@ -32,8 +32,8 @@ impl Add for Value {
     type Output = Value;
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a+b),
-            _ =>  panic!("Invalid operation!")
+            (Value::Number(a), Value::Number(b)) => Value::Number(a + b),
+            _ => panic!("Invalid operation!"),
         }
     }
 }
@@ -43,8 +43,8 @@ impl Mul for Value {
 
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a*b),
-            _ => panic!("Invalid operation!")
+            (Value::Number(a), Value::Number(b)) => Value::Number(a * b),
+            _ => panic!("Invalid operation!"),
         }
     }
 }
@@ -53,8 +53,8 @@ impl Div for Value {
     type Output = Value;
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a/b),
-            _ => panic!("Invalid operation!")
+            (Value::Number(a), Value::Number(b)) => Value::Number(a / b),
+            _ => panic!("Invalid operation!"),
         }
     }
 }
@@ -64,8 +64,8 @@ impl Sub for Value {
 
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a-b),
-            _ => panic!("Invalid operation!")
+            (Value::Number(a), Value::Number(b)) => Value::Number(a - b),
+            _ => panic!("Invalid operation!"),
         }
     }
 }
@@ -76,7 +76,7 @@ impl Neg for Value {
     fn neg(self) -> Self::Output {
         match self {
             Value::Number(a) => Value::Number(-a),
-            _ => panic!("Invalid operation!")
+            _ => panic!("Invalid operation!"),
         }
     }
 }
@@ -107,6 +107,4 @@ impl ValueArray {
     pub fn read_at(&self, index: usize) -> Value {
         self.values[index]
     }
-
-   
 }

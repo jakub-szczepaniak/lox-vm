@@ -64,7 +64,7 @@ impl Chunk {
         self.constants.read_at(index)
     }
 
-    pub fn get_line(&self, index: usize) -> usize { 
+    pub fn get_line(&self, index: usize) -> usize {
         self.lines[index]
     }
 

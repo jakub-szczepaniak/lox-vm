@@ -94,7 +94,6 @@ pub struct Compiler<'a, T: Emmitable> {
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
-    
     pub fn new(chunk: &'a mut T) -> Self {
         let mut rules = vec![
             ParseRule::<T> {
@@ -147,7 +146,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     pub fn had_error(&self) -> bool {
         *self.parser.had_error.borrow()
-    }    
+    }
 
     pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
         self.initialize();
@@ -211,7 +210,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
                 Literal::Number(v) => self.emit_constant(Value::Number(*v)),
                 Literal::Boolean(b) => self.emit_constant(Value::Boolean(*b)),
                 Literal::Nil => self.emit_constant(Value::Nil),
-                Literal::String(s) => todo!()
+                Literal::String(s) => todo!(),
             }
         }
     }
@@ -295,6 +294,5 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn end_compiler(&mut self) {
         self.emit_return()
-       
     }
 }
