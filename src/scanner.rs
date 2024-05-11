@@ -1,7 +1,6 @@
 use aho_corasick::AhoCorasick;
 
-use crate::token::TT;
-use crate::{token::*, value::Value};
+use crate::token::*;
 #[derive(Debug)]
 pub struct Scanner {
     pub source: Vec<char>,

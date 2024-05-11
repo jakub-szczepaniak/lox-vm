@@ -114,23 +114,6 @@ impl Token {
             literal: None,
         }
     }
-    fn new_string(lexeme: String) -> Self {
-        Self {
-            ttype: TT::String,
-            line: 1,
-            lexeme: lexeme.clone(),
-            literal: Some(Literal::String(lexeme)),
-        }
-    }
-
-    fn new_digit(lexeme: String, value: f64) -> Self {
-        Self {
-            ttype: TT::Number,
-            line: 1,
-            lexeme: lexeme.clone(),
-            literal: Some(Literal::Number(value)),
-        }
-    }
 }
 
 impl Display for Token {

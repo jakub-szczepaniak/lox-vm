@@ -94,7 +94,6 @@ impl Emmitable for Chunk {
     fn emit_constant(&mut self, value: Value, line: usize) {
         if let Some(index) = self.add_constant(value) {
             self.emit_bytes(OpCode::Constant, index, line)
-        } else {
         }
     }
 }
