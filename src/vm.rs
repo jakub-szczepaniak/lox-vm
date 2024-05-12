@@ -92,6 +92,9 @@ impl<T: Emmitable + OpCodable> VM<T> {
                     self.validate_binary()?;
                     self.divide_op()?
                 }
+                OpCode::Nil => self.push(Value::Nil),
+                OpCode::True => self.push(Value::Boolean(true)),
+                OpCode::False => self.push(Value::Boolean(false)),
             }
         }
     }

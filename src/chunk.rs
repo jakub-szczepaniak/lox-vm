@@ -10,6 +10,9 @@ pub enum OpCode {
     Substract,
     Multiply,
     Divide,
+    Nil,
+    True,
+    False,
 }
 
 impl Display for OpCode {
@@ -129,6 +132,9 @@ impl OpCodable for Chunk {
             OpCode::Multiply => self.simple_instruction("OP_MULTIPLY", offset, output),
             OpCode::Divide => self.simple_instruction("OP_DIVIDE", offset, output),
             OpCode::Constant => self.constant_instruction("OP_CONSTANT", offset, output),
+            OpCode::Nil => self.simple_instruction("OP_NIL", offset, output),
+            OpCode::True => self.simple_instruction("OP_TRUE", offset, output),
+            OpCode::False => self.simple_instruction("OP_FALSE", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
@@ -151,6 +157,9 @@ impl From<u8> for OpCode {
             4 => Self::Substract,
             5 => Self::Multiply,
             6 => Self::Divide,
+            7 => Self::Nil,
+            8 => Self::True,
+            9 => Self::False,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -166,6 +175,9 @@ impl From<OpCode> for u8 {
             OpCode::Substract => 4,
             OpCode::Multiply => 5,
             OpCode::Divide => 6,
+            OpCode::Nil => 7,
+            OpCode::True => 8,
+            OpCode::False => 9,
         }
     }
 }

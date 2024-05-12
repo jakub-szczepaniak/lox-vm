@@ -136,6 +136,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             prefix: Some(|c| c.number()),
             infix: None,
         };
+        rules[TT::Constant as usize] = ParseRule::<T> {
+            precedence: Precedence::None,
+            prefix: Some(|c| c.literal()),
+            infix: None,
+        };
         Self {
             parser: Parser::default(),
             chunk,
@@ -208,9 +213,23 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::Number(v) => self.emit_constant(Value::Number(*v)),
-                Literal::Boolean(b) => self.emit_constant(Value::Boolean(*b)),
-                Literal::Nil => self.emit_constant(Value::Nil),
                 Literal::String(s) => todo!(),
+                _ => unreachable!("should not happen"),
+            }
+        }
+    }
+    fn literal(&mut self) {
+        if let Some(literal) = &self.parser.previous.literal {
+            match literal {
+                Literal::Boolean(b) => {
+                    if *b {
+                        self.emit_byte(OpCode::True.into())
+                    } else {
+                        self.emit_byte(OpCode::False.into())
+                    }
+                }
+                Literal::Nil => self.emit_byte(OpCode::Nil.into()),
+                _ => unreachable!("Should not happen!"),
             }
         }
     }
