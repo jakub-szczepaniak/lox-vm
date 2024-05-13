@@ -13,6 +13,10 @@ pub enum OpCode {
     Nil,
     True,
     False,
+    Not,
+    Equal,
+    Greater,
+    Less,
 }
 
 impl Display for OpCode {
@@ -135,6 +139,10 @@ impl OpCodable for Chunk {
             OpCode::Nil => self.simple_instruction("OP_NIL", offset, output),
             OpCode::True => self.simple_instruction("OP_TRUE", offset, output),
             OpCode::False => self.simple_instruction("OP_FALSE", offset, output),
+            OpCode::Not => self.simple_instruction("OP_NOT", offset, output),
+            OpCode::Equal => self.simple_instruction("OP_EQUAL", offset, output),
+            OpCode::Less => self.simple_instruction("OP_LESS", offset, output),
+            OpCode::Greater => self.simple_instruction("OP_GREATER", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
@@ -160,6 +168,10 @@ impl From<u8> for OpCode {
             7 => Self::Nil,
             8 => Self::True,
             9 => Self::False,
+            10 => Self::Not,
+            11 => Self::Equal,
+            12 => Self::Greater,
+            13 => Self::Less,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -178,6 +190,10 @@ impl From<OpCode> for u8 {
             OpCode::Nil => 7,
             OpCode::True => 8,
             OpCode::False => 9,
+            OpCode::Not => 10,
+            OpCode::Equal => 11,
+            OpCode::Greater => 12,
+            OpCode::Less => 13,
         }
     }
 }

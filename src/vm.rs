@@ -95,6 +95,23 @@ impl<T: Emmitable + OpCodable> VM<T> {
                 OpCode::Nil => self.push(Value::Nil),
                 OpCode::True => self.push(Value::Boolean(true)),
                 OpCode::False => self.push(Value::Boolean(false)),
+                OpCode::Not => {
+                    let value = self.pop();
+                    self.push(Value::Boolean(value.is_falsy()));
+                }
+                OpCode::Equal => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(Value::Boolean(a == b));
+                }
+                OpCode::Less => {
+                    self.validate_binary()?;
+                    self.binary_op(|a: Value, b: Value| Value::Boolean(a < b));
+                }
+                OpCode::Greater => {
+                    self.validate_binary()?;
+                    self.binary_op(|a: Value, b: Value| Value::Boolean(a > b));
+                }
             }
         }
     }
@@ -127,8 +144,8 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
 
     fn binary_op(&mut self, operation: fn(a: Value, b: Value) -> Value) {
-        let b = self.stack.pop().unwrap();
-        let a = self.stack.pop().unwrap();
+        let b = self.pop();
+        let a = self.pop();
         self.stack.push(operation(a, b))
     }
 

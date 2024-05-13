@@ -7,6 +7,7 @@ pub struct Parser {
     current: Token,
     had_error: RefCell<bool>,
 }
+#[derive(Copy)]
 struct ParseRule<'a, T>
 where
     T: Emmitable,
@@ -141,6 +142,24 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             prefix: Some(|c| c.literal()),
             infix: None,
         };
+        rules[TT::Bang as usize].prefix = Some(|c| c.unary());
+
+        rules[TT::BangEquals as usize] = ParseRule::<T> {
+            precedence: Precedence::Equality,
+            prefix: None,
+            infix: Some(|c| c.binary()),
+        };
+        rules[TT::Equals as usize] = rules[TT::BangEquals as usize].clone();
+
+        rules[TT::Greater as usize] = ParseRule::<T> {
+            prefix: None,
+            precedence: Precedence::Comparison,
+            infix: Some(|c| c.binary()),
+        };
+        rules[TT::GreaterEquals as usize] = rules[TT::Greater as usize].clone();
+        rules[TT::Less as usize] = rules[TT::Greater as usize].clone();
+        rules[TT::LessEquals as usize] = rules[TT::Greater as usize].clone();
+
         Self {
             parser: Parser::default(),
             chunk,
@@ -213,7 +232,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::Number(v) => self.emit_constant(Value::Number(*v)),
-                Literal::String(s) => todo!(),
                 _ => unreachable!("should not happen"),
             }
         }
@@ -229,6 +247,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
                     }
                 }
                 Literal::Nil => self.emit_byte(OpCode::Nil.into()),
+
                 _ => unreachable!("Should not happen!"),
             }
         }
@@ -244,6 +263,13 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             TT::Minus => self.emit_byte(OpCode::Substract.into()),
             TT::Star => self.emit_byte(OpCode::Multiply.into()),
             TT::Slash => self.emit_byte(OpCode::Divide.into()),
+            TT::Equals => self.emit_byte(OpCode::Equal.into()),
+            TT::Less => self.emit_byte(OpCode::Less.into()),
+            TT::Greater => self.emit_byte(OpCode::Greater.into()),
+            TT::BangEquals => self.emit_bytes(OpCode::Equal, OpCode::Not.into()),
+            TT::GreaterEquals => self.emit_bytes(OpCode::Greater, OpCode::Not.into()),
+            TT::LessEquals => self.emit_bytes(OpCode::Less, OpCode::Not.into()),
+
             _ => unreachable!("Should not be here!"),
         }
     }
@@ -252,11 +278,10 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         let operator = self.parser.previous.ttype;
         self.parse_precendence(Precedence::Unary);
 
-        if operator == TT::Minus {
-            self.chunk
-                .emit_byte(OpCode::Negate.into(), self.parser.previous.line)
-        } else {
-            unreachable!("should not happen")
+        match operator {
+            TT::Minus => self.emit_byte(OpCode::Negate.into()),
+            TT::Bang => self.emit_byte(OpCode::Not.into()),
+            _ => unreachable!("Should not happen!"),
         }
     }
 

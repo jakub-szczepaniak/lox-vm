@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
@@ -11,6 +11,9 @@ pub enum Value {
 impl Value {
     pub fn is_number(&self) -> bool {
         matches!(self, Value::Number(_))
+    }
+    pub fn is_falsy(&self) -> bool {
+        matches!(self, Value::Nil | Value::Boolean(false))
     }
 }
 
