@@ -1,3 +1,4 @@
+use crate::object::Obj;
 use crate::{chunk::*, compiler::*, value::Value};
 use std::fmt::Debug;
 use std::io::Write;

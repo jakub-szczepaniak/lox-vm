@@ -1,3 +1,4 @@
+use crate::object::Obj;
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -6,6 +7,7 @@ pub enum Value {
     Number(f64),
     Boolean(bool),
     Nil,
+    Obj(usize), // index to the location on the list of objects
 }
 
 impl Value {
@@ -23,6 +25,7 @@ impl Display for Value {
             Value::Boolean(v) => write!(f, "{v}"),
             Value::Number(v) => write!(f, "{v}"),
             Value::Nil => write!(f, "Nil"),
+            Value::Obj(o) => write!(f, "{o}"),
         }
     }
 }
@@ -81,11 +84,15 @@ impl Neg for Value {
 }
 pub struct ValueArray {
     values: Vec<Value>,
+    objects: Vec<Obj>,
 }
 
 impl ValueArray {
     pub fn new() -> Self {
-        Self { values: Vec::new() }
+        Self {
+            values: Vec::new(),
+            objects: Vec::new(),
+        }
     }
 
     //returns the index of value that was inserted
@@ -97,6 +104,7 @@ impl ValueArray {
 
     pub fn free(&mut self) {
         self.values = Vec::new();
+        self.objects = Vec::new();
     }
 
     pub fn print_at(&self, index: usize) {
@@ -105,5 +113,11 @@ impl ValueArray {
 
     pub fn read_at(&self, index: usize) -> Value {
         self.values[index]
+    }
+    //returns the index of the Object allocated
+    pub fn make_object(&mut self, obj: Obj) -> usize {
+        let ind = self.objects.len();
+        self.objects.push(obj);
+        ind
     }
 }
