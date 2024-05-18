@@ -69,7 +69,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
                 }
                 OpCode::Constant => {
                     let constant = self.read_constant();
-                    self.push(constant);
+                    self.push(constant.clone());
                 }
                 OpCode::Negate => {
                     self.validate_unary()?;
@@ -133,7 +133,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     fn divide_op(&mut self) -> Result<(), InterpretResult> {
         if let Value::Number(divider) = self.peek(0) {
-            if divider == 0.0 {
+            if *divider == 0.0 {
                 return self.runtime_error("Cannot divide by 0!");
             }
         }
@@ -173,8 +173,8 @@ impl<T: Emmitable + OpCodable> VM<T> {
         self.stack.clear();
     }
 
-    fn peek(&self, distance: usize) -> Value {
-        self.stack[self.stack.len() - distance - 1].clone()
+    fn peek(&self, distance: usize) -> &Value {
+        &self.stack[self.stack.len() - distance - 1]
     }
 
     fn pop(&mut self) -> Value {
