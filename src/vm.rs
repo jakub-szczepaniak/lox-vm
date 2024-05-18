@@ -1,4 +1,3 @@
-use crate::object::Obj;
 use crate::{chunk::*, compiler::*, value::Value};
 use std::fmt::Debug;
 use std::io::Write;
@@ -175,7 +174,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
 
     fn peek(&self, distance: usize) -> Value {
-        self.stack[self.stack.len() - distance - 1]
+        self.stack[self.stack.len() - distance - 1].clone()
     }
 
     fn pop(&mut self) -> Value {

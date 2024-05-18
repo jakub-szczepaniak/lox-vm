@@ -1,13 +1,23 @@
-use crate::object::Obj;
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
     Nil,
-    Obj(usize), // index to the location on the list of objects
+    Str(String),
+}
+
+impl Clone for Value {
+    fn clone(&self) -> Self {
+        match self {
+            Value::Boolean(b) => Value::Boolean(*b),
+            Value::Number(n) => Value::Number(*n),
+            Value::Nil => Value::Nil,
+            Value::Str(s) => Value::Str(s.clone()),
+        }
+    }
 }
 
 impl Value {
@@ -25,7 +35,7 @@ impl Display for Value {
             Value::Boolean(v) => write!(f, "{v}"),
             Value::Number(v) => write!(f, "{v}"),
             Value::Nil => write!(f, "Nil"),
-            Value::Obj(o) => write!(f, "{o}"),
+            Value::Str(s) => write!(f, "{s}"),
         }
     }
 }
@@ -84,15 +94,11 @@ impl Neg for Value {
 }
 pub struct ValueArray {
     values: Vec<Value>,
-    objects: Vec<Obj>,
 }
 
 impl ValueArray {
     pub fn new() -> Self {
-        Self {
-            values: Vec::new(),
-            objects: Vec::new(),
-        }
+        Self { values: Vec::new() }
     }
 
     //returns the index of value that was inserted
@@ -104,7 +110,6 @@ impl ValueArray {
 
     pub fn free(&mut self) {
         self.values = Vec::new();
-        self.objects = Vec::new();
     }
 
     pub fn print_at(&self, index: usize) {
@@ -112,12 +117,6 @@ impl ValueArray {
     }
 
     pub fn read_at(&self, index: usize) -> Value {
-        self.values[index]
-    }
-    //returns the index of the Object allocated
-    pub fn make_object(&mut self, obj: Obj) -> usize {
-        let ind = self.objects.len();
-        self.objects.push(obj);
-        ind
+        self.values[index].clone()
     }
 }

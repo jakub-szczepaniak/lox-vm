@@ -1,4 +1,4 @@
-use crate::{chunk::*, object::Obj, scanner::*, token::*, value::Value, InterpretResult, OpCode};
+use crate::{chunk::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
 #[derive(Default)]
@@ -261,8 +261,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::String(s) => {
-                    let str_obj = Obj::String(s.to_string());
-                    self.emit_object(str_obj);
+                    let str = Value::Str(s.to_string());
+                    self.emit_constant(str);
                 }
                 _ => unreachable!("Should not happen"),
             }
@@ -350,10 +350,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn emit_return(&mut self) {
         self.emit_byte(OpCode::Return.into())
-    }
-
-    fn emit_object(&mut self, obj: Obj) {
-        self.chunk.emit_object(obj, self.parser.previous.line)
     }
 
     fn end_compiler(&mut self) {

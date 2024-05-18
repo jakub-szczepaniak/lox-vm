@@ -8,7 +8,6 @@ use clap::Parser;
 use vm::*;
 mod chunk;
 mod compiler;
-mod object;
 mod scanner;
 mod token;
 mod value;
