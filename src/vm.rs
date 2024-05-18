@@ -77,8 +77,13 @@ impl<T: Emmitable + OpCodable> VM<T> {
                     self.push(-val)
                 }
                 OpCode::Add => {
-                    self.validate_binary()?;
-                    self.binary_op(|a, b| a + b)
+                    if self.operands_numbers() {
+                        self.binary_op(|a, b| a + b)
+                    } else if self.operands_strings() {
+                        self.binary_op(|a, b| Value::Str(format!("{a}{b}")))
+                    } else {
+                        self.runtime_error("Both operands have to be string or number!")?
+                    }
                 }
                 OpCode::Substract => {
                     self.validate_binary()?;
@@ -124,11 +129,19 @@ impl<T: Emmitable + OpCodable> VM<T> {
         }
     }
     fn validate_binary(&mut self) -> Result<(), InterpretResult> {
-        if !self.peek(0).is_number() || !self.peek(1).is_number() {
+        if !self.operands_numbers() {
             self.runtime_error("Both operands need to be numbers")
         } else {
             Ok(())
         }
+    }
+
+    fn operands_numbers(&mut self) -> bool {
+        self.peek(0).is_number() && self.peek(1).is_number()
+    }
+
+    fn operands_strings(&mut self) -> bool {
+        self.peek(0).is_string() && self.peek(1).is_string()
     }
 
     fn divide_op(&mut self) -> Result<(), InterpretResult> {
