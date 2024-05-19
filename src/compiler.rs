@@ -190,7 +190,12 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.end_compiler();
         self.consume(TT::EndOfFile, "Expected end of expression");
         self.finalize();
-        Ok(())
+
+        if self.had_error() {
+            Err(InterpretResult::CompilerError)
+        } else {
+            Ok(())
+        }
     }
 
     fn initialize(&mut self) {
