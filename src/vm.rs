@@ -69,6 +69,9 @@ impl<T: Emmitable + OpCodable> VM<T> {
                 OpCode::Print => {
                     println!("{}", self.pop());
                 }
+                OpCode::Pop => {
+                    self.pop();
+                }
                 OpCode::Constant => {
                     let constant = self.read_constant();
                     self.push(constant.clone());

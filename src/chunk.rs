@@ -18,6 +18,7 @@ pub enum OpCode {
     Greater,
     Less,
     Print,
+    Pop,
 }
 
 impl Display for OpCode {
@@ -145,6 +146,7 @@ impl OpCodable for Chunk {
             OpCode::Less => self.simple_instruction("OP_LESS", offset, output),
             OpCode::Greater => self.simple_instruction("OP_GREATER", offset, output),
             OpCode::Print => self.simple_instruction("OP_PRINT", offset, output),
+            OpCode::Pop => self.simple_instruction("OP_POP", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
@@ -175,6 +177,7 @@ impl From<u8> for OpCode {
             12 => Self::Greater,
             13 => Self::Less,
             14 => Self::Print,
+            15 => Self::Pop,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -198,6 +201,7 @@ impl From<OpCode> for u8 {
             OpCode::Greater => 12,
             OpCode::Less => 13,
             OpCode::Print => 14,
+            OpCode::Pop => 15,
         }
     }
 }

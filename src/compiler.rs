@@ -215,11 +215,17 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn declaration(&mut self) {
         self.statement();
+
+        if self.had_error() {
+            self.synchronize();
+        }
     }
 
     fn statement(&mut self) {
         if self.is_match(TT::Print) {
             self.print_statement();
+        } else {
+            self.expression_statement();
         }
     }
 
@@ -229,6 +235,34 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.emit_byte(OpCode::Print.into());
     }
 
+    fn expression_statement(&mut self) {
+        self.expression();
+        self.consume(TT::Semicolon, "Expected ';' after expression.");
+        self.emit_byte(OpCode::Pop.into());
+    }
+    fn synchronize(&mut self) {
+        self.parser.had_error.replace(false);
+        while self.parser.current.ttype != TT::EndOfFile {
+            if self.parser.previous.ttype == TT::Semicolon {
+                return;
+            }
+            if matches!(
+                self.parser.current.ttype,
+                TT::Class
+                    | TT::Fun
+                    | TT::Var
+                    | TT::For
+                    | TT::If
+                    | TT::While
+                    | TT::Print
+                    | TT::Return
+            ) {
+                return;
+            }
+
+            self.advance();
+        }
+    }
     fn check(&self, ttype: TT) -> bool {
         self.parser.current.ttype == ttype
     }
