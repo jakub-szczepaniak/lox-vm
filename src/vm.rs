@@ -64,8 +64,10 @@ impl<T: Emmitable + OpCodable> VM<T> {
             let instruction = self.read_opcode();
             match instruction {
                 OpCode::Return => {
-                    println!("{}", self.pop());
                     return Ok(());
+                }
+                OpCode::Print => {
+                    println!("{}", self.pop());
                 }
                 OpCode::Constant => {
                     let constant = self.read_constant();

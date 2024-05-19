@@ -181,7 +181,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.initialize();
         self.scanner = Scanner::new(source);
         self.advance();
-        self.expression();
+
+        while !self.is_match(TT::EndOfFile) {
+            self.declaration();
+        }
+
         self.end_compiler();
         self.consume(TT::EndOfFile, "Expected end of expression");
         self.finalize();
@@ -206,6 +210,35 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             }
             let message = self.parser.current.lexeme.as_str();
             self.error_at_current(message);
+        }
+    }
+
+    fn declaration(&mut self) {
+        self.statement();
+    }
+
+    fn statement(&mut self) {
+        if self.is_match(TT::Print) {
+            self.print_statement();
+        }
+    }
+
+    fn print_statement(&mut self) {
+        self.expression();
+        self.consume(TT::Semicolon, "Expected ';' after the value.");
+        self.emit_byte(OpCode::Print.into());
+    }
+
+    fn check(&self, ttype: TT) -> bool {
+        self.parser.current.ttype == ttype
+    }
+
+    fn is_match(&mut self, ttype: TT) -> bool {
+        if self.check(ttype) {
+            self.advance();
+            true
+        } else {
+            false
         }
     }
 
