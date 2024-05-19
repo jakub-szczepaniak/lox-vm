@@ -6,6 +6,7 @@ pub struct Parser {
     previous: Token,
     current: Token,
     had_error: RefCell<bool>,
+    panic_mode: RefCell<bool>,
 }
 #[derive(Copy)]
 struct ParseRule<'a, T>
@@ -241,7 +242,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.emit_byte(OpCode::Pop.into());
     }
     fn synchronize(&mut self) {
-        self.parser.had_error.replace(false);
+        self.parser.panic_mode.replace(false);
         while self.parser.current.ttype != TT::EndOfFile {
             if self.parser.previous.ttype == TT::Semicolon {
                 return;
@@ -286,6 +287,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn error_at(&self, token: &Token, message: &str) {
+        if *self.parser.panic_mode.borrow() {
+            return;
+        }
+        self.parser.panic_mode.replace(true);
+
         eprint!("[line {}] Error", token.line);
         match token.ttype {
             TT::EndOfFile => {
