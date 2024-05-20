@@ -148,7 +148,7 @@ impl OpCodable for Chunk {
             OpCode::Greater => self.simple_instruction("OP_GREATER", offset, output),
             OpCode::Print => self.simple_instruction("OP_PRINT", offset, output),
             OpCode::Pop => self.simple_instruction("OP_POP", offset, output),
-            OpCode::DefineGlobal => self.simple_instruction("OP_DEFINE_GLOBAL", offset, output),
+            OpCode::DefineGlobal => self.constant_instruction("OP_DEFINE_GLOBAL", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
