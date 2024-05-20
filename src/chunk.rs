@@ -19,6 +19,7 @@ pub enum OpCode {
     Less,
     Print,
     Pop,
+    DefineGlobal,
 }
 
 impl Display for OpCode {
@@ -33,6 +34,7 @@ pub trait Emmitable {
     fn emit_constant(&mut self, value: Value, line: usize);
     fn initialize_emiter(&mut self) {}
     fn finalize_emiter(&mut self) {}
+    fn make_constant(&mut self, value: Value) -> Option<u8>;
 }
 
 pub trait OpCodable {
@@ -62,11 +64,6 @@ impl Chunk {
     pub fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
-    }
-
-    pub fn add_constant(&mut self, value: Value) -> Option<u8> {
-        let index = self.constants.write(value);
-        u8::try_from(index).ok()
     }
 
     pub fn get_constant(&self, index: usize) -> Value {
@@ -101,9 +98,13 @@ impl Emmitable for Chunk {
         self.write(byte2, line);
     }
     fn emit_constant(&mut self, value: Value, line: usize) {
-        if let Some(index) = self.add_constant(value) {
+        if let Some(index) = self.make_constant(value) {
             self.emit_bytes(OpCode::Constant, index, line)
         }
+    }
+    fn make_constant(&mut self, value: Value) -> Option<u8> {
+        let index = self.constants.write(value);
+        u8::try_from(index).ok()
     }
 }
 
@@ -147,6 +148,7 @@ impl OpCodable for Chunk {
             OpCode::Greater => self.simple_instruction("OP_GREATER", offset, output),
             OpCode::Print => self.simple_instruction("OP_PRINT", offset, output),
             OpCode::Pop => self.simple_instruction("OP_POP", offset, output),
+            OpCode::DefineGlobal => self.simple_instruction("OP_DEFINE_GLOBAL", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
@@ -178,6 +180,7 @@ impl From<u8> for OpCode {
             13 => Self::Less,
             14 => Self::Print,
             15 => Self::Pop,
+            16 => Self::DefineGlobal,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -202,6 +205,7 @@ impl From<OpCode> for u8 {
             OpCode::Less => 13,
             OpCode::Print => 14,
             OpCode::Pop => 15,
+            OpCode::DefineGlobal => 16,
         }
     }
 }
@@ -223,7 +227,7 @@ mod tests {
     fn test_write_constant_to_chunk() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.add_constant(Value::Number(1.2)).unwrap();
+        let const_index = chunk.make_constant(Value::Number(1.2)).unwrap();
         chunk.write(const_index, 1);
         assert_eq!(chunk.code.len(), 2)
     }
@@ -232,7 +236,7 @@ mod tests {
     fn test_free_the_chunk() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::Return as u8, 23);
-        chunk.add_constant(Value::Number(1.2));
+        chunk.make_constant(Value::Number(1.2));
         chunk.reset();
         assert_eq!(chunk.code.len(), 0)
     }
@@ -259,7 +263,7 @@ mod tests {
         let mut chunk = Chunk::new();
         let mut output = Vec::new();
         chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.add_constant(Value::Number(12.4)).unwrap();
+        let const_index = chunk.make_constant(Value::Number(12.4)).unwrap();
         chunk.write(const_index, 1);
 
         chunk.disassemble("test chunk", &mut output);

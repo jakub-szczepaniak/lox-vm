@@ -220,8 +220,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn declaration(&mut self) {
-        self.statement();
-
+        if self.is_match(TT::Var) {
+            self.var_declaration();
+        } else {
+            self.statement();
+        }
         if self.had_error() {
             self.synchronize();
         }
@@ -233,6 +236,36 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         } else {
             self.expression_statement();
         }
+    }
+
+    fn var_declaration(&mut self) {
+        let global = self.parse_variable("Expect variable name.");
+
+        if self.is_match(TT::Assign) {
+            self.expression();
+        } else {
+            self.emit_byte(OpCode::Nil.into());
+        }
+
+        self.consume(TT::Semicolon, "Expect ';' after expression.");
+
+        self.define_variable(global);
+    }
+
+    fn parse_variable(&mut self, error_message: &str) -> u8 {
+        self.consume(TT::Identifier, error_message);
+        let name = self.parser.previous.lexeme.clone();
+        self.identifier_constant(&name)
+    }
+
+    fn identifier_constant(&mut self, name: &str) -> u8 {
+        self.chunk
+            .make_constant(Value::Str(name.to_string()))
+            .unwrap()
+    }
+
+    fn define_variable(&mut self, index: u8) {
+        self.emit_bytes(OpCode::DefineGlobal, index);
     }
 
     fn print_statement(&mut self) {

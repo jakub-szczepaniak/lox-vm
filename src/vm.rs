@@ -1,4 +1,5 @@
 use crate::{chunk::*, compiler::*, value::Value};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::io::Write;
 #[derive(thiserror::Error, PartialEq)]
@@ -21,6 +22,7 @@ pub struct VM<T: Emmitable + OpCodable> {
     ip: usize,
     stack: Vec<Value>,
     chunk: T,
+    globals: HashMap<String, Value>,
 }
 
 impl<T: Emmitable + OpCodable> VM<T> {
@@ -29,6 +31,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
             ip: 0,
             stack: Vec::new(),
             chunk: t,
+            globals: HashMap::new(),
         }
     }
 
@@ -63,6 +66,16 @@ impl<T: Emmitable + OpCodable> VM<T> {
             }
             let instruction = self.read_opcode();
             match instruction {
+                OpCode::DefineGlobal => {
+                    let constant = self.read_constant().clone();
+                    if let Value::Str(k) = constant {
+                        let v = self.pop();
+                        self.globals.insert(k, v);
+                    } else {
+                        panic!("Not able to read constant from the table!")
+                    }
+                }
+
                 OpCode::Return => {
                     return Ok(());
                 }

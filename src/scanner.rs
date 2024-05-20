@@ -265,7 +265,7 @@ mod tests {
     #[rstest]
     fn test_non_empty_scan() {
         let source = "-1";
-        let scanner = Scanner::new(&source);
+        let scanner = Scanner::new(source);
 
         assert_eq!(scanner.source.len(), 2);
     }
