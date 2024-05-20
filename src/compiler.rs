@@ -133,6 +133,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             infix: Some(|c| c.binary()),
         };
 
+        rules[TT::Identifier as usize] = ParseRule::<T> {
+            prefix: Some(|c| c.variable()),
+            precedence: Precedence::None,
+            infix: None,
+        };
         rules[TT::Number as usize] = ParseRule::<T> {
             precedence: Precedence::None,
             prefix: Some(|c| c.number()),
@@ -258,6 +263,15 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.identifier_constant(&name)
     }
 
+    fn variable(&mut self) {
+        self.named_variable(&self.parser.previous.lexeme.clone());
+    }
+
+    fn named_variable(&mut self, name: &str) {
+        let index = self.identifier_constant(name);
+        self.emit_bytes(OpCode::GetGlobal, index)
+    }
+
     fn identifier_constant(&mut self, name: &str) -> u8 {
         self.chunk
             .make_constant(Value::Str(name.to_string()))
@@ -265,7 +279,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn define_variable(&mut self, index: u8) {
-        self.emit_bytes(OpCode::DefineGlobal, index);
+        self.emit_bytes(OpCode::DefineGlobal.into(), index);
     }
 
     fn print_statement(&mut self) {

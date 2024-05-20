@@ -66,6 +66,19 @@ impl<T: Emmitable + OpCodable> VM<T> {
             }
             let instruction = self.read_opcode();
             match instruction {
+                OpCode::GetGlobal => {
+                    let constant = self.read_constant().clone();
+                    if let Value::Str(name) = constant {
+                        if let Some(v) = self.globals.get(&name) {
+                            self.push(v.clone())
+                        } else {
+                            return self.runtime_error(&format!("Undefined variable {name}"));
+                        }
+                    } else {
+                        panic!("Unable to read constant!");
+                    }
+                }
+
                 OpCode::DefineGlobal => {
                     let constant = self.read_constant().clone();
                     if let Value::Str(k) = constant {
