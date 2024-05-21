@@ -21,6 +21,7 @@ pub enum OpCode {
     Pop,
     DefineGlobal,
     GetGlobal,
+    SetGlobal,
 }
 
 impl Display for OpCode {
@@ -151,6 +152,7 @@ impl OpCodable for Chunk {
             OpCode::Pop => self.simple_instruction("OP_POP", offset, output),
             OpCode::DefineGlobal => self.constant_instruction("OP_DEFINE_GLOBAL", offset, output),
             OpCode::GetGlobal => self.constant_instruction("OP_GET_GLOBAL", offset, output),
+            OpCode::SetGlobal => self.constant_instruction("OP_SET_GLOBAL", offset, output),
         }
     }
     fn read(&self, ip: usize) -> OpCode {
@@ -184,6 +186,7 @@ impl From<u8> for OpCode {
             15 => Self::Pop,
             16 => Self::DefineGlobal,
             17 => Self::GetGlobal,
+            18 => Self::SetGlobal,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -210,6 +213,7 @@ impl From<OpCode> for u8 {
             OpCode::Pop => 15,
             OpCode::DefineGlobal => 16,
             OpCode::GetGlobal => 17,
+            OpCode::SetGlobal => 18,
         }
     }
 }

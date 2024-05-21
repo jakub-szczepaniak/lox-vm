@@ -269,7 +269,12 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn named_variable(&mut self, name: &str) {
         let index = self.identifier_constant(name);
-        self.emit_bytes(OpCode::GetGlobal, index)
+        if self.is_match(TT::Assign) {
+            self.expression();
+            self.emit_bytes(OpCode::SetGlobal, index);
+        } else {
+            self.emit_bytes(OpCode::GetGlobal, index)
+        }
     }
 
     fn identifier_constant(&mut self, name: &str) -> u8 {

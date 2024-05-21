@@ -1,4 +1,5 @@
 use crate::{chunk::*, compiler::*, value::Value};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::io::Write;
@@ -89,6 +90,20 @@ impl<T: Emmitable + OpCodable> VM<T> {
                     }
                 }
 
+                OpCode::SetGlobal => {
+                    let constant = self.read_constant().clone();
+                    if let Value::Str(var_name) = constant {
+                        let value = self.peek(0).clone();
+                        if let Entry::Occupied(mut entry) = self.globals.entry(var_name.clone()) {
+                            *entry.get_mut() = value;
+                        } else {
+                            return self
+                                .runtime_error(&format!("Undefined variable '{}'", &var_name));
+                        }
+                    } else {
+                        panic!("Not able to read constant from the table!")
+                    }
+                }
                 OpCode::Return => {
                     return Ok(());
                 }
