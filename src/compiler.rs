@@ -14,8 +14,8 @@ where
     T: Emmitable,
 {
     precedence: Precedence,
-    prefix: Option<fn(&mut Compiler<'a, T>)>,
-    infix: Option<fn(&mut Compiler<'a, T>)>,
+    prefix: Option<fn(&mut Compiler<'a, T>, bool)>,
+    infix: Option<fn(&mut Compiler<'a, T>, bool)>,
 }
 impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
     fn default() -> ParseRule<'a, T> {
@@ -107,65 +107,65 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         ];
         rules[TT::LeftParen as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(|c| c.grouping()),
+            prefix: Some(Compiler::grouping),
             infix: None,
         };
         rules[TT::Minus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
-            prefix: Some(|c| c.unary()),
-            infix: Some(|c| c.binary()),
+            prefix: Some(Compiler::unary),
+            infix: Some(Compiler::unary),
         };
         rules[TT::Plus as usize] = ParseRule::<T> {
             precedence: Precedence::Term,
             prefix: None,
-            infix: Some(|c| c.binary()),
+            infix: Some(Compiler::binary),
         };
 
         rules[TT::Slash as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix: Some(|c| c.binary()),
+            infix: Some(Compiler::binary),
         };
 
         rules[TT::Star as usize] = ParseRule::<T> {
             precedence: Precedence::Factor,
             prefix: None,
-            infix: Some(|c| c.binary()),
+            infix: Some(Compiler::binary),
         };
 
         rules[TT::Identifier as usize] = ParseRule::<T> {
-            prefix: Some(|c| c.variable()),
+            prefix: Some(Compiler::variable),
             precedence: Precedence::None,
             infix: None,
         };
         rules[TT::Number as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(|c| c.number()),
+            prefix: Some(Compiler::number),
             infix: None,
         };
         rules[TT::Constant as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(|c| c.literal()),
+            prefix: Some(Compiler::literal),
             infix: None,
         };
         rules[TT::String as usize] = ParseRule::<T> {
             precedence: Precedence::None,
-            prefix: Some(|c| c.string()),
+            prefix: Some(Compiler::string),
             infix: None,
         };
-        rules[TT::Bang as usize].prefix = Some(|c| c.unary());
+        rules[TT::Bang as usize].prefix = Some(Compiler::unary);
 
         rules[TT::BangEquals as usize] = ParseRule::<T> {
             precedence: Precedence::Equality,
             prefix: None,
-            infix: Some(|c| c.binary()),
+            infix: Some(Compiler::binary),
         };
         rules[TT::Equals as usize] = rules[TT::BangEquals as usize].clone();
 
         rules[TT::Greater as usize] = ParseRule::<T> {
             prefix: None,
             precedence: Precedence::Comparison,
-            infix: Some(|c| c.binary()),
+            infix: Some(Compiler::binary),
         };
         rules[TT::GreaterEquals as usize] = rules[TT::Greater as usize].clone();
         rules[TT::Less as usize] = rules[TT::Greater as usize].clone();
@@ -263,13 +263,13 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.identifier_constant(&name)
     }
 
-    fn variable(&mut self) {
-        self.named_variable(&self.parser.previous.lexeme.clone());
+    fn variable(&mut self, can_assign: bool) {
+        self.named_variable(&self.parser.previous.lexeme.clone(), can_assign);
     }
 
-    fn named_variable(&mut self, name: &str) {
+    fn named_variable(&mut self, name: &str, can_assign: bool) {
         let index = self.identifier_constant(name);
-        if self.is_match(TT::Assign) {
+        if can_assign && self.is_match(TT::Assign) {
             self.expression();
             self.emit_bytes(OpCode::SetGlobal, index);
         } else {
@@ -363,7 +363,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parser.had_error.replace(true);
     }
 
-    fn number(&mut self) {
+    fn number(&mut self, _can_assign: bool) {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::Number(v) => self.emit_constant(Value::Number(*v)),
@@ -371,7 +371,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             }
         }
     }
-    fn literal(&mut self) {
+    fn literal(&mut self, _can_assign: bool) {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::Boolean(b) => {
@@ -387,7 +387,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn string(&mut self) {
+    fn string(&mut self, _can_assign: bool) {
         if let Some(literal) = &self.parser.previous.literal {
             match literal {
                 Literal::String(s) => {
@@ -399,7 +399,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn binary(&mut self) {
+    fn binary(&mut self, can_assign: bool) {
         let op_type = self.parser.previous.ttype;
         let rule = &self.rules[op_type as usize];
         self.parse_precendence(rule.precedence.next());
@@ -420,7 +420,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn unary(&mut self) {
+    fn unary(&mut self, can_assign: bool) {
         let operator = self.parser.previous.ttype;
         self.parse_precendence(Precedence::Unary);
 
@@ -434,12 +434,17 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn parse_precendence(&mut self, precedence: Precedence) {
         self.advance();
         if let Some(prefix_rule) = &self.rules[self.parser.previous.ttype as usize].prefix {
-            prefix_rule(self);
+            let can_assign: bool = precedence <= Precedence::Assignment;
+            prefix_rule(self, can_assign);
 
             while precedence <= self.rules[self.parser.current.ttype as usize].precedence {
                 self.advance();
                 if let Some(infix_rule) = &self.rules[self.parser.previous.ttype as usize].infix {
-                    infix_rule(self);
+                    infix_rule(self, can_assign);
+                }
+
+                if can_assign && self.is_match(TT::Assign) {
+                    self.error("Invalid assignment target.");
                 }
             }
         } else {
@@ -451,7 +456,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.parse_precendence(Precedence::Assignment)
     }
 
-    fn grouping(&mut self) {
+    fn grouping(&mut self, _can_assign: bool) {
         self.expression();
         self.consume(TT::RightParen, "Expected ')' after expression.")
     }
