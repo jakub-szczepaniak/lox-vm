@@ -1,6 +1,11 @@
 use crate::{chunk::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
+pub struct Local {
+    name: Token,
+    depth: Option<usize>,
+}
+
 #[derive(Default)]
 pub struct Parser {
     previous: Token,
@@ -93,6 +98,8 @@ pub struct Compiler<'a, T: Emmitable> {
     parser: Parser,
     scanner: Scanner,
     rules: Vec<ParseRule<'a, T>>,
+    locals: Vec<Local>,
+    scope_depth: usize,
 }
 
 impl<'a, T: Emmitable> Compiler<'a, T> {
@@ -176,6 +183,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             chunk,
             scanner: Scanner::new(""),
             rules,
+            locals: Vec::new(),
+            scope_depth: 0,
         }
     }
 
