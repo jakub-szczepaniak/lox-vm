@@ -1,4 +1,4 @@
-use crate::{chunk::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
+use crate::{chunk::*, emmitable::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
 pub struct Local {

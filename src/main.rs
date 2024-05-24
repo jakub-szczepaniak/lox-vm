@@ -3,11 +3,14 @@ use std::{
     path::PathBuf,
 };
 
-use chunk::*;
+use crate::chunk::*;
+use crate::emmitable::*;
 use clap::Parser;
 use vm::*;
+
 mod chunk;
 mod compiler;
+mod emmitable;
 mod scanner;
 mod token;
 mod value;
