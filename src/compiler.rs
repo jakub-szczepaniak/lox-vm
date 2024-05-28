@@ -243,10 +243,38 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             self.synchronize();
         }
     }
+    fn block(&mut self) {
+        while (!self.check(TT::RightBracket) && !self.check(TT::EndOfFile)) {
+            self.declaration();
+        }
+
+        self.consume(TT::RightBracket, "Expect '}' after block.");
+    }
+
+    fn begin_scope(&mut self) {
+        self.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self) {
+        self.scope_depth -= 1;
+
+        let mut index = self.locals.len();
+        while index > 0 {
+            index -= 1;
+            if self.locals[index].depth.unwrap() < self.scope_depth {
+                self.emit_byte(OpCode::Pop.into());
+                self.locals.remove(index);
+            }
+        }
+    }
 
     fn statement(&mut self) {
         if self.is_match(TT::Print) {
             self.print_statement();
+        } else if self.is_match(TT::LeftBracket) {
+            self.begin_scope();
+            self.block();
+            self.end_scope();
         } else {
             self.expression_statement();
         }
@@ -268,8 +296,44 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn parse_variable(&mut self, error_message: &str) -> u8 {
         self.consume(TT::Identifier, error_message);
-        let name = self.parser.previous.lexeme.clone();
-        self.identifier_constant(&name)
+
+        self.declare_variable();
+        if self.scope_depth == 0 {
+            let name = self.parser.previous.lexeme.clone();
+            self.identifier_constant(&name)
+        } else {
+            0
+        }
+    }
+
+    fn declare_variable(&mut self) {
+        if self.scope_depth != 0 {
+            let name = self.parser.previous.lexeme.clone();
+            for x in self.locals.iter().rev() {
+                if x.depth.unwrap() < self.scope_depth {
+                    break;
+                }
+                if x.name.lexeme == name {
+                    self.error("Already declared variable with this name in the current scope.");
+                    return;
+                }
+            }
+
+            let token = self.parser.previous.clone();
+            self.add_local(token);
+        }
+    }
+
+    fn add_local(&mut self, token: Token) {
+        if self.locals.len() >= 256 {
+            self.error("Too many local variables in the scope!");
+            return;
+        }
+        let local = Local {
+            name: token,
+            depth: Some(self.scope_depth),
+        };
+        self.locals.push(local);
     }
 
     fn variable(&mut self, can_assign: bool) {
@@ -293,7 +357,9 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn define_variable(&mut self, index: u8) {
-        self.emit_bytes(OpCode::DefineGlobal.into(), index);
+        if self.scope_depth == 0 {
+            self.emit_bytes(OpCode::DefineGlobal.into(), index);
+        }
     }
 
     fn print_statement(&mut self) {
