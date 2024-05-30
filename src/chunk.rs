@@ -23,6 +23,8 @@ pub enum OpCode {
     DefineGlobal,
     GetGlobal,
     SetGlobal,
+    GetLocal,
+    SetLocal,
 }
 
 impl Display for OpCode {
@@ -79,6 +81,12 @@ impl Chunk {
         write!(output, "{name:-16} {offset:4} '").unwrap();
         write!(output, "{value}").unwrap();
         writeln!(output, "'").unwrap();
+        offset + 2
+    }
+
+    fn byte_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
+        let slot = self.code[offset + 1];
+        writeln!(output, "{name:-16} {slot:4}").unwrap();
         offset + 2
     }
 }
@@ -145,8 +153,11 @@ impl OpCodable for Chunk {
             OpCode::DefineGlobal => self.constant_instruction("OP_DEFINE_GLOBAL", offset, output),
             OpCode::GetGlobal => self.constant_instruction("OP_GET_GLOBAL", offset, output),
             OpCode::SetGlobal => self.constant_instruction("OP_SET_GLOBAL", offset, output),
+            OpCode::GetLocal => self.byte_instruction("OP_GET_LOCAL", offset, output),
+            OpCode::SetLocal => self.byte_instruction("OP_SET_LOCAL", offset, output),
         }
     }
+
     fn read(&self, ip: usize) -> OpCode {
         self.code[ip].into()
     }
@@ -179,6 +190,8 @@ impl From<u8> for OpCode {
             16 => Self::DefineGlobal,
             17 => Self::GetGlobal,
             18 => Self::SetGlobal,
+            19 => Self::GetLocal,
+            20 => Self::SetLocal,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -206,6 +219,8 @@ impl From<OpCode> for u8 {
             OpCode::DefineGlobal => 16,
             OpCode::GetGlobal => 17,
             OpCode::SetGlobal => 18,
+            OpCode::GetLocal => 19,
+            OpCode::SetLocal => 20,
         }
     }
 }

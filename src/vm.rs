@@ -79,7 +79,14 @@ impl<T: Emmitable + OpCodable> VM<T> {
                         panic!("Unable to read constant!");
                     }
                 }
-
+                OpCode::GetLocal => {
+                    let slot = self.read_byte() as usize;
+                    self.push(self.stack[slot].clone());
+                }
+                OpCode::SetLocal => {
+                    let slot = self.read_byte() as usize;
+                    self.stack[slot] = self.peek(0).clone();
+                }
                 OpCode::DefineGlobal => {
                     let constant = self.read_constant().clone();
                     if let Value::Str(k) = constant {
@@ -213,6 +220,13 @@ impl<T: Emmitable + OpCodable> VM<T> {
         self.ip += 1;
         result
     }
+
+    fn read_byte(&mut self) -> u8 {
+        let result = self.chunk.read(self.ip).into();
+        self.ip += 1;
+        result
+    }
+
     fn read_constant(&mut self) -> Value {
         let index = self.chunk.read(self.ip) as usize;
         self.ip += 1;

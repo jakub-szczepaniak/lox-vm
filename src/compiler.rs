@@ -1,6 +1,7 @@
 use crate::{chunk::*, emmitable::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
+#[derive(Debug)]
 pub struct Local {
     name: Token,
     depth: Option<usize>,
@@ -261,7 +262,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         let mut index = self.locals.len();
         while index > 0 {
             index -= 1;
-            if self.locals[index].depth.unwrap() < self.scope_depth {
+            if self.locals[index].depth.unwrap() > self.scope_depth {
                 self.emit_byte(OpCode::Pop.into());
                 self.locals.remove(index);
             }
@@ -341,13 +342,34 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn named_variable(&mut self, name: &str, can_assign: bool) {
-        let index = self.identifier_constant(name);
+        let (index, get_op, set_op) = if let Some(local_arg) = self.resolve_local(name) {
+            (local_arg, OpCode::GetLocal, OpCode::SetLocal)
+        } else {
+            (
+                self.identifier_constant(name),
+                OpCode::GetGlobal,
+                OpCode::SetGlobal,
+            )
+        };
+
         if can_assign && self.is_match(TT::Assign) {
             self.expression();
-            self.emit_bytes(OpCode::SetGlobal, index);
+            self.emit_bytes(set_op, index);
         } else {
-            self.emit_bytes(OpCode::GetGlobal, index)
+            self.emit_bytes(get_op, index)
         }
+    }
+
+    fn resolve_local(&mut self, name: &str) -> Option<u8> {
+        for (index, value) in self.locals.iter().rev().enumerate() {
+            if value.name.lexeme == name {
+                if value.depth.is_none() {
+                    self.error("Cannot read local variable in its own initializer.")
+                }
+                return Some((self.locals.len() - 1 - index) as u8);
+            }
+        }
+        None
     }
 
     fn identifier_constant(&mut self, name: &str) -> u8 {
