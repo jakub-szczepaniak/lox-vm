@@ -116,10 +116,6 @@ impl ValueArray {
         self.values = Vec::new();
     }
 
-    pub fn print_at(&self, index: usize) {
-        print!("{}", self.values[index]);
-    }
-
     pub fn read_at(&self, index: usize) -> Value {
         self.values[index].clone()
     }

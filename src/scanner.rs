@@ -18,7 +18,7 @@ impl Scanner {
             current: 0,
             start: 0,
             ac: AhoCorasick::new([
-                "and", "class", "else", "false", "for", "fun", "if", "nil", "or", "print",
+                "and", "break", "class", "else", "false", "for", "fun", "if", "nil", "or", "print",
                 "return", "super", "this", "true", "var", "while",
             ])
             .unwrap(),
@@ -170,6 +170,8 @@ impl Scanner {
             "print" => TT::Print,
             "return" => TT::Return,
             "var" => TT::Var,
+            "if" => TT::If,
+            "break" => TT::Break,
 
             _ => TT::Error,
         }

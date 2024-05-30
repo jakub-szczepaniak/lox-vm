@@ -1,4 +1,4 @@
-use crate::{chunk::*, emmitable::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
+use crate::{emmitable::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
 #[derive(Debug)]
@@ -83,14 +83,6 @@ impl Precedence {
         }
         let precedence = self as u8;
         (precedence + 1).into()
-    }
-
-    fn previous(self) -> Precedence {
-        if self == Precedence::None {
-            panic!("No previous precedence available")
-        }
-        let precedence = self as u8;
-        (precedence - 1).into()
     }
 }
 
@@ -245,7 +237,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
     fn block(&mut self) {
-        while (!self.check(TT::RightBracket) && !self.check(TT::EndOfFile)) {
+        while !self.check(TT::RightBracket) && !self.check(TT::EndOfFile) {
             self.declaration();
         }
 
@@ -504,7 +496,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn binary(&mut self, can_assign: bool) {
+    fn binary(&mut self, _can_assign: bool) {
         let op_type = self.parser.previous.ttype;
         let rule = &self.rules[op_type as usize];
         self.parse_precendence(rule.precedence.next());
@@ -525,7 +517,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
     }
 
-    fn unary(&mut self, can_assign: bool) {
+    fn unary(&mut self, _can_assign: bool) {
         let operator = self.parser.previous.ttype;
         self.parse_precendence(Precedence::Unary);
 

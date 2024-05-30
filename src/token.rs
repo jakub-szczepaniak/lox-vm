@@ -65,7 +65,7 @@ pub enum TokenType {
     Var,
     While,
     Break,
-    If
+    If,
 }
 
 impl Display for TT {
