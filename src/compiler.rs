@@ -324,7 +324,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
         let local = Local {
             name: token,
-            depth: Some(self.scope_depth),
+            depth: None,
         };
         self.locals.push(local);
     }
@@ -343,7 +343,6 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
                 OpCode::SetGlobal,
             )
         };
-        dbg!(set_op.clone());
 
         if can_assign && self.is_match(TT::Assign) {
             self.expression();
