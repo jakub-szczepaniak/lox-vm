@@ -351,6 +351,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
                 OpCode::SetGlobal,
             )
         };
+        dbg!(set_op.clone());
 
         if can_assign && self.is_match(TT::Assign) {
             self.expression();
@@ -380,8 +381,15 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn define_variable(&mut self, index: u8) {
         if self.scope_depth == 0 {
-            self.emit_bytes(OpCode::DefineGlobal.into(), index);
+            self.emit_bytes(OpCode::DefineGlobal, index);
+        } else {
+            self.mark_initialized();
         }
+    }
+
+    fn mark_initialized(&mut self) {
+        let index = self.locals.len() - 1;
+        self.locals[index].depth = Some(self.scope_depth);
     }
 
     fn print_statement(&mut self) {
