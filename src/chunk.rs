@@ -25,6 +25,7 @@ pub enum OpCode {
     SetGlobal,
     GetLocal,
     SetLocal,
+    JumpIfFalse,
 }
 
 impl Display for OpCode {
@@ -75,6 +76,23 @@ impl Chunk {
         offset + 1
     }
 
+    fn jump_instruction(
+        &self,
+        name: &str,
+        offset: usize,
+        sign: i8,
+        output: &mut impl Write,
+    ) -> usize {
+        let jump = self.jump_offset(offset + 1);
+        let jump_to = if sign == 1 {
+            offset + 3 + jump
+        } else {
+            offset - 3 + jump
+        };
+        writeln!(output, "{name:16} {offset:4} -> {jump_to}").unwrap();
+        offset + 3
+    }
+
     fn constant_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
         let constant_index = self.code[offset + 1];
         let value = self.constants.read_at(constant_index as usize);
@@ -107,6 +125,17 @@ impl Emmitable for Chunk {
     fn make_constant(&mut self, value: Value) -> Option<u8> {
         let index = self.constants.write(value);
         u8::try_from(index).ok()
+    }
+
+    fn size(&self) -> usize {
+        self.code.len()
+    }
+
+    fn write_at(&mut self, offset: usize, byte: u8) {
+        self.code[offset] = byte;
+    }
+    fn jump_offset(&self, offset: usize) -> usize {
+        ((self.code[offset] as usize) << 8) | self.code[offset + 1] as usize
     }
 }
 
@@ -155,6 +184,7 @@ impl OpCodable for Chunk {
             OpCode::SetGlobal => self.constant_instruction("OP_SET_GLOBAL", offset, output),
             OpCode::GetLocal => self.byte_instruction("OP_GET_LOCAL", offset, output),
             OpCode::SetLocal => self.byte_instruction("OP_SET_LOCAL", offset, output),
+            OpCode::JumpIfFalse => self.jump_instruction("OP_SET_LOCAL", offset, 1, output),
         }
     }
 
@@ -192,6 +222,7 @@ impl From<u8> for OpCode {
             18 => Self::SetGlobal,
             19 => Self::GetLocal,
             20 => Self::SetLocal,
+            21 => Self::JumpIfFalse,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -221,6 +252,7 @@ impl From<OpCode> for u8 {
             OpCode::SetGlobal => 18,
             OpCode::GetLocal => 19,
             OpCode::SetLocal => 20,
+            OpCode::JumpIfFalse => 21,
         }
     }
 }

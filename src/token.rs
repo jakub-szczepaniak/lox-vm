@@ -142,9 +142,3 @@ impl Default for Token {
 }
 
 pub use TokenType as TT;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rstest::*;
-}

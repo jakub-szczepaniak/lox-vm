@@ -264,6 +264,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     fn statement(&mut self) {
         if self.is_match(TT::Print) {
             self.print_statement();
+        } else if self.is_match(TT::If) {
+            self.if_statement();
         } else if self.is_match(TT::LeftBracket) {
             self.begin_scope();
             self.block();
@@ -387,6 +389,33 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.expression();
         self.consume(TT::Semicolon, "Expected ';' after the value.");
         self.emit_byte(OpCode::Print.into());
+    }
+
+    fn if_statement(&mut self) {
+        self.consume(TT::LeftParen, "Expect '(' after 'if'!");
+        self.expression();
+        self.consume(TT::RightParen, "Expect ')' after condition");
+
+        let jump_to = self.emit_jump(OpCode::JumpIfFalse);
+        self.statement();
+
+        self.finish_jump(jump_to)
+    }
+
+    fn emit_jump(&mut self, opcode: OpCode) -> usize {
+        self.emit_byte(opcode as u8);
+        self.emit_byte(0xff);
+        self.emit_byte(0xff);
+        self.chunk.size() - 2
+    }
+
+    fn finish_jump(&mut self, offset: usize) {
+        let jump = self.chunk.size() - offset - 2;
+        if jump > u16::MAX as usize {
+            self.error("Too much code to jump over.");
+        }
+        self.chunk.write_at(offset, ((jump >> 8) & 0xff) as u8);
+        self.chunk.write_at(offset + 1, (jump & 0xff) as u8);
     }
 
     fn expression_statement(&mut self) {

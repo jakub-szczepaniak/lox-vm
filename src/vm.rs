@@ -96,6 +96,12 @@ impl<T: Emmitable + OpCodable> VM<T> {
                         panic!("Not able to read constant from the table!")
                     }
                 }
+                OpCode::JumpIfFalse => {
+                    let offset = self.read_short();
+                    if self.peek(0).is_falsy() {
+                        self.ip += offset;
+                    }
+                }
 
                 OpCode::SetGlobal => {
                     let constant = self.read_constant().clone();
@@ -225,6 +231,12 @@ impl<T: Emmitable + OpCodable> VM<T> {
         let result = self.chunk.read(self.ip).into();
         self.ip += 1;
         result
+    }
+
+    fn read_short(&mut self) -> usize {
+        let short = self.chunk.jump_offset(self.ip);
+        self.ip += 2;
+        short
     }
 
     fn read_constant(&mut self) -> Value {

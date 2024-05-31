@@ -275,7 +275,7 @@ mod tests {
     #[rstest]
     fn test_scaning_tokens() {
         let source = "-1";
-        let mut scanner = Scanner::new(&source);
+        let mut scanner = Scanner::new(source);
         let mut token = scanner.scan_token();
         assert_eq!(token.ttype, TT::Minus);
         token = scanner.scan_token();
