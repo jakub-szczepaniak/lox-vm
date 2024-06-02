@@ -171,6 +171,18 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         rules[TT::Less as usize] = rules[TT::Greater as usize].clone();
         rules[TT::LessEquals as usize] = rules[TT::Greater as usize].clone();
 
+        rules[TT::And as usize] = ParseRule::<T> {
+            prefix: None,
+            precedence: Precedence::And,
+            infix: Some(Compiler::and),
+        };
+
+        rules[TT::Or as usize] = ParseRule::<T> {
+            prefix: None,
+            precedence: Precedence::Or,
+            infix: Some(Compiler::or),
+        };
+
         Self {
             parser: Parser::default(),
             chunk,
@@ -427,6 +439,25 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         }
         self.chunk.write_at(offset, ((jump >> 8) & 0xff) as u8);
         self.chunk.write_at(offset + 1, (jump & 0xff) as u8);
+    }
+
+    fn and(&mut self, _can_assign: bool) {
+        let end_jump = self.emit_jump(OpCode::JumpIfFalse);
+        self.emit_byte(OpCode::Pop.into());
+        self.parse_precendence(Precedence::And);
+        self.finish_jump(end_jump);
+    }
+
+    fn or(&mut self, _can_assign: bool) {
+        let else_jump = self.emit_jump(OpCode::JumpIfFalse);
+        let end_jump = self.emit_jump(OpCode::Jump);
+
+        self.finish_jump(else_jump);
+        self.emit_byte(OpCode::Pop.into());
+
+        self.parse_precendence(Precedence::Or);
+
+        self.finish_jump(end_jump);
     }
 
     fn expression_statement(&mut self) {

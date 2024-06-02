@@ -81,11 +81,11 @@ impl Chunk {
         &self,
         name: &str,
         offset: usize,
-        sign: i8,
+        sign: bool,
         output: &mut impl Write,
     ) -> usize {
         let jump = self.jump_offset(offset + 1);
-        let jump_to = if sign == 1 {
+        let jump_to = if sign {
             offset + 3 + jump
         } else {
             offset - 3 + jump
@@ -185,8 +185,8 @@ impl OpCodable for Chunk {
             OpCode::SetGlobal => self.constant_instruction("OP_SET_GLOBAL", offset, output),
             OpCode::GetLocal => self.byte_instruction("OP_GET_LOCAL", offset, output),
             OpCode::SetLocal => self.byte_instruction("OP_SET_LOCAL", offset, output),
-            OpCode::JumpIfFalse => self.jump_instruction("OP_JUMP_IF_FALSE", offset, 1, output),
-            OpCode::Jump => self.jump_instruction("OP_JUMP", offset, 1, output),
+            OpCode::JumpIfFalse => self.jump_instruction("OP_JUMP_IF_FALSE", offset, true, output),
+            OpCode::Jump => self.jump_instruction("OP_JUMP", offset, true, output),
         }
     }
 
