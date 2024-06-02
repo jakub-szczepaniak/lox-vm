@@ -397,9 +397,20 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.consume(TT::RightParen, "Expect ')' after condition");
 
         let jump_to = self.emit_jump(OpCode::JumpIfFalse);
+        self.emit_byte(OpCode::Pop.into());
+
         self.statement();
 
-        self.finish_jump(jump_to)
+        let else_to: usize = self.emit_jump(OpCode::Jump);
+
+        self.finish_jump(jump_to);
+
+        self.emit_byte(OpCode::Pop.into());
+
+        if self.is_match(TT::Else) {
+            self.statement();
+        }
+        self.finish_jump(else_to);
     }
 
     fn emit_jump(&mut self, opcode: OpCode) -> usize {

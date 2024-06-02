@@ -102,6 +102,10 @@ impl<T: Emmitable + OpCodable> VM<T> {
                         self.ip += offset;
                     }
                 }
+                OpCode::Jump => {
+                    let offset = self.read_short();
+                    self.ip += offset
+                }
 
                 OpCode::SetGlobal => {
                     let constant = self.read_constant().clone();
