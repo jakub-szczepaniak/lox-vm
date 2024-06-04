@@ -280,6 +280,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             self.if_statement();
         } else if self.is_match(TT::While) {
             self.while_statement();
+        } else if self.is_match(TT::For) {
+            self.for_statement();
         } else if self.is_match(TT::LeftBracket) {
             self.begin_scope();
             self.block();
@@ -440,6 +442,49 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
         self.finish_jump(exit_jump);
         self.emit_byte(OpCode::Pop.into());
+    }
+
+    fn for_statement(&mut self) {
+        self.begin_scope();
+        self.consume(TT::LeftParen, "Expect '(' after 'for'");
+        if self.is_match(TT::Semicolon) {
+        } else if self.is_match(TT::Var) {
+            self.var_declaration();
+        } else {
+            self.expression_statement();
+        }
+        let mut loop_start: usize = self.chunk.size();
+        let exit_jump = if self.is_match(TT::Semicolon) {
+            None
+        } else {
+            self.expression();
+            self.consume(TT::Semicolon, "Expect ';' after the condition.");
+            let result = self.emit_jump(OpCode::JumpIfFalse);
+            self.emit_byte(OpCode::Pop.into());
+            Some(result)
+        };
+
+        if !self.is_match(TT::RightParen) {
+            let body_jump = self.emit_jump(OpCode::Jump);
+            let increment_start = self.chunk.size();
+
+            self.expression();
+            self.emit_byte(OpCode::Pop.into());
+
+            self.consume(TT::RightParen, "Expect ')' after for clauses.");
+            self.emit_loop(loop_start);
+            loop_start = increment_start;
+            self.finish_jump(body_jump);
+        }
+
+        self.statement();
+        self.emit_loop(loop_start);
+
+        if let Some(exit) = exit_jump {
+            self.finish_jump(exit);
+            self.emit_byte(OpCode::Pop.into());
+        }
+        self.end_scope();
     }
 
     fn emit_loop(&mut self, loop_start: usize) {
