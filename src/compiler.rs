@@ -278,6 +278,8 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             self.print_statement();
         } else if self.is_match(TT::If) {
             self.if_statement();
+        } else if self.is_match(TT::While) {
+            self.while_statement();
         } else if self.is_match(TT::LeftBracket) {
             self.begin_scope();
             self.block();
@@ -423,6 +425,32 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
             self.statement();
         }
         self.finish_jump(else_to);
+    }
+
+    fn while_statement(&mut self) {
+        let loop_start: usize = self.chunk.size();
+        self.consume(TT::LeftParen, "Expect '(' after 'while'.");
+        self.expression();
+        self.consume(TT::RightParen, "Expected ')' after condition.");
+
+        let exit_jump = self.emit_jump(OpCode::JumpIfFalse);
+        self.emit_byte(OpCode::Pop.into());
+        self.statement();
+        self.emit_loop(loop_start);
+
+        self.finish_jump(exit_jump);
+        self.emit_byte(OpCode::Pop.into());
+    }
+
+    fn emit_loop(&mut self, loop_start: usize) {
+        self.emit_byte(OpCode::Loop.into());
+        let offset: usize = self.chunk.size() - loop_start + 2;
+        if offset > u16::MAX as usize {
+            self.error("Loop body too large")
+        }
+
+        self.emit_byte(((offset >> 8) & 0xff) as u8);
+        self.emit_byte((offset & 0xff) as u8);
     }
 
     fn emit_jump(&mut self, opcode: OpCode) -> usize {

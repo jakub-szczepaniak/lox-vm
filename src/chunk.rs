@@ -27,6 +27,7 @@ pub enum OpCode {
     SetLocal,
     JumpIfFalse,
     Jump,
+    Loop,
 }
 
 impl Display for OpCode {
@@ -187,6 +188,7 @@ impl OpCodable for Chunk {
             OpCode::SetLocal => self.byte_instruction("OP_SET_LOCAL", offset, output),
             OpCode::JumpIfFalse => self.jump_instruction("OP_JUMP_IF_FALSE", offset, true, output),
             OpCode::Jump => self.jump_instruction("OP_JUMP", offset, true, output),
+            OpCode::Loop => self.jump_instruction("OP_LOOP", offset, false, output),
         }
     }
 
@@ -226,6 +228,7 @@ impl From<u8> for OpCode {
             20 => Self::SetLocal,
             21 => Self::JumpIfFalse,
             22 => Self::Jump,
+            23 => Self::Loop,
             _ => todo!("Undefined opcode conversion!"),
         }
     }
@@ -257,6 +260,7 @@ impl From<OpCode> for u8 {
             OpCode::SetLocal => 20,
             OpCode::JumpIfFalse => 21,
             OpCode::Jump => 22,
+            OpCode::Loop => 23,
         }
     }
 }

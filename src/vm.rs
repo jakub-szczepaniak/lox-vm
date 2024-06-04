@@ -106,6 +106,10 @@ impl<T: Emmitable + OpCodable> VM<T> {
                     let offset = self.read_short();
                     self.ip += offset
                 }
+                OpCode::Loop => {
+                    let offset: usize = self.read_short();
+                    self.ip -= offset;
+                }
 
                 OpCode::SetGlobal => {
                     let constant = self.read_constant().clone();
