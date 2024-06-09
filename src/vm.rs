@@ -1,4 +1,4 @@
-use crate::{chunk::*, compiler::*, emmitable::*, value::Value};
+use crate::{chunk::*, compiler::*, emmitable::*, function::*, value::Value};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -22,17 +22,19 @@ impl Debug for InterpretResult {
 pub struct VM<T: Emmitable + OpCodable> {
     ip: usize,
     stack: Vec<Value>,
-    chunk: T,
     globals: HashMap<String, Value>,
+    function: Function<T>,
 }
 
 impl<T: Emmitable + OpCodable> VM<T> {
     pub fn new(t: T) -> Self {
+        let mut script: Function<T> = Function::<T>::new("<script>");
+        script.chunk = Some(t);
         Self {
             ip: 0,
             stack: Vec::new(),
-            chunk: t,
             globals: HashMap::new(),
+            function: script,
         }
     }
 
@@ -40,12 +42,11 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         // need to reset the chunk here!!!
-        self.chunk.reset();
-        let mut compiler = Compiler::new(&mut self.chunk);
+        let mut compiler = Compiler::new(&mut self.function);
         compiler.compile(source)?;
         #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
-            self.chunk.disassemble("Debug", &mut std::io::stdout());
+            self.function.disassemble("Debug", &mut std::io::stdout());
         }
 
         self.ip = 0;
@@ -62,7 +63,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
                     write!(&mut std::io::stdout(), "[ {value} ]").unwrap();
                 }
                 writeln!(&mut std::io::stdout()).unwrap();
-                self.chunk
+                self.function
                     .disassemble_instruction(self.ip, &mut std::io::stdout());
             }
             let instruction = self.read_opcode();
@@ -230,31 +231,31 @@ impl<T: Emmitable + OpCodable> VM<T> {
     }
 
     fn read_opcode(&mut self) -> OpCode {
-        let result = self.chunk.read(self.ip);
+        let result = self.function.read(self.ip);
         self.ip += 1;
         result
     }
 
     fn read_byte(&mut self) -> u8 {
-        let result = self.chunk.read(self.ip).into();
+        let result = self.function.read(self.ip).into();
         self.ip += 1;
         result
     }
 
     fn read_short(&mut self) -> usize {
-        let short = self.chunk.jump_offset(self.ip);
+        let short = self.function.jump_offset(self.ip);
         self.ip += 2;
         short
     }
 
     fn read_constant(&mut self) -> Value {
-        let index = self.chunk.read(self.ip) as usize;
+        let index = self.function.read(self.ip) as usize;
         self.ip += 1;
-        self.chunk.read_constant(index)
+        self.function.read_constant(index)
     }
 
     fn runtime_error(&mut self, message: &str) -> Result<(), InterpretResult> {
-        let line = self.chunk.read_line(self.ip - 1);
+        let line = self.function.read_line(self.ip - 1);
 
         eprintln!("{}", message);
         eprintln!("[line {}] in script", line);

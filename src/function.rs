@@ -1,11 +1,11 @@
-use crate::{chunk::*, Emmitable};
+use crate::{chunk::*, value::Value, Emmitable};
 
-use std::fmt::Display;
+use std::{fmt::Display, io::Write};
 #[derive(Debug)]
-struct Function<T: Emmitable + OpCodable> {
+pub struct Function<T: Emmitable + OpCodable> {
     arity: u8,
     name: String,
-    chunk: Option<T>,
+    pub chunk: Option<T>,
 }
 
 impl<T: Emmitable + OpCodable> Display for Function<T> {
@@ -38,6 +38,96 @@ impl<T: Emmitable + OpCodable> Function<T> {
             arity: 0,
             name: name.to_string(),
             chunk: None,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        if let Some(s) = &self.chunk {
+            s.size()
+        } else {
+            0
+        }
+    }
+
+    pub fn initialize_emiter(&mut self) {
+        if let Some(ref mut s) = self.chunk {
+            s.initialize_emiter()
+        }
+    }
+
+    pub fn finalize_emiter(&mut self) {
+        if let Some(ref mut s) = self.chunk {
+            s.finalize_emiter()
+        }
+    }
+
+    pub fn make_constant(&mut self, name: Value) -> u8 {
+        if let Some(ref mut s) = self.chunk {
+            s.make_constant(name).unwrap()
+        } else {
+            0
+        }
+    }
+
+    pub fn write_at(&mut self, offset: usize, byte: u8) {
+        if let Some(ref mut s) = self.chunk {
+            s.write_at(offset, byte)
+        }
+    }
+
+    pub fn emit_byte(&mut self, byte: u8, line: usize) {
+        if let Some(ref mut s) = self.chunk {
+            s.emit_byte(byte, line)
+        }
+    }
+
+    pub fn emit_constant(&mut self, val: Value, line: usize) {
+        if let Some(ref mut s) = self.chunk {
+            s.emit_constant(val, line)
+        }
+    }
+
+    pub fn disassemble(&self, name: &str, output: &mut impl Write) {
+        if let Some(ref s) = self.chunk {
+            s.disassemble(&self.name, output)
+        }
+    }
+
+    pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) {
+        if let Some(ref s) = self.chunk {
+            s.disassemble_instruction(offset, output);
+        }
+    }
+
+    pub fn read(&self, ip: usize) -> OpCode {
+        if let Some(ref s) = self.chunk {
+            s.read(ip)
+        } else {
+            unreachable!("Should never happen");
+        }
+    }
+
+    pub fn jump_offset(&self, ip: usize) -> usize {
+        if let Some(ref s) = self.chunk {
+            s.jump_offset(ip)
+        } else {
+            unreachable!("Should never happen")
+        }
+    }
+
+    pub fn read_constant(&self, index: usize) -> Value {
+        if let Some(ref s) = self.chunk {
+            s.read_constant(index)
+        } else {
+            unreachable!("Should never happen")
+        }
+    }
+
+    pub fn read_line(&self, index: usize) -> usize {
+        if let Some(ref s) = self.chunk {
+            s.read_line(index)
+        } else {
+            unreachable!("Should never happen")
         }
     }
 }
@@ -82,6 +172,6 @@ mod tests {
     #[should_panic]
     fn implements_clone() {
         let first: Function<Chunk> = Function::new("name");
-        let _cloned = first.clone();
+        let cloned = first.clone();
     }
 }

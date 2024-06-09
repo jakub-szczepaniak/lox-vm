@@ -1,4 +1,7 @@
-use crate::{emmitable::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
+use crate::{
+    emmitable::*, function::*, scanner::*, token::*, value::Value, Chunk, InterpretResult,
+    OpCodable, OpCode,
+};
 use std::cell::RefCell;
 
 #[derive(Debug)]
@@ -17,13 +20,13 @@ pub struct Parser {
 #[derive(Copy)]
 struct ParseRule<'a, T>
 where
-    T: Emmitable,
+    T: Emmitable + OpCodable,
 {
     precedence: Precedence,
     prefix: Option<fn(&mut Compiler<'a, T>, bool)>,
     infix: Option<fn(&mut Compiler<'a, T>, bool)>,
 }
-impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
+impl<'a, T: Emmitable + OpCodable> Default for ParseRule<'a, T> {
     fn default() -> ParseRule<'a, T> {
         Self {
             precedence: Precedence::None,
@@ -32,7 +35,7 @@ impl<'a, T: Emmitable> Default for ParseRule<'a, T> {
         }
     }
 }
-impl<'a, T: Emmitable> Clone for ParseRule<'a, T> {
+impl<'a, T: Emmitable + OpCodable> Clone for ParseRule<'a, T> {
     fn clone(&self) -> Self {
         Self {
             precedence: self.precedence,
@@ -86,8 +89,8 @@ impl Precedence {
     }
 }
 
-pub struct Compiler<'a, T: Emmitable> {
-    chunk: &'a mut T,
+pub struct Compiler<'a, T: Emmitable + OpCodable> {
+    function: &'a mut Function<T>,
     parser: Parser,
     scanner: Scanner,
     rules: Vec<ParseRule<'a, T>>,
@@ -95,8 +98,8 @@ pub struct Compiler<'a, T: Emmitable> {
     scope_depth: usize,
 }
 
-impl<'a, T: Emmitable> Compiler<'a, T> {
-    pub fn new(chunk: &'a mut T) -> Self {
+impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
+    pub fn new(function: &'a mut Function<T>) -> Self {
         let mut rules = vec![
             ParseRule::<T> {
                 precedence: Precedence::None,
@@ -185,7 +188,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
         Self {
             parser: Parser::default(),
-            chunk,
+            function,
             scanner: Scanner::new(""),
             rules,
             locals: Vec::new(),
@@ -218,11 +221,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn initialize(&mut self) {
-        self.chunk.initialize_emiter()
+        self.function.initialize_emiter()
     }
 
     fn finalize(&mut self) {
-        self.chunk.finalize_emiter();
+        self.function.finalize_emiter();
     }
 
     fn advance(&mut self) {
@@ -383,9 +386,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn identifier_constant(&mut self, name: &str) -> u8 {
-        self.chunk
-            .make_constant(Value::Str(name.to_string()))
-            .unwrap()
+        self.function.make_constant(Value::Str(name.to_string()))
     }
 
     fn define_variable(&mut self, index: u8) {
@@ -430,7 +431,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn while_statement(&mut self) {
-        let loop_start: usize = self.chunk.size();
+        let loop_start: usize = self.function.size();
         self.consume(TT::LeftParen, "Expect '(' after 'while'.");
         self.expression();
         self.consume(TT::RightParen, "Expected ')' after condition.");
@@ -453,7 +454,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         } else {
             self.expression_statement();
         }
-        let mut loop_start: usize = self.chunk.size();
+        let mut loop_start: usize = self.function.size();
         let exit_jump = if self.is_match(TT::Semicolon) {
             None
         } else {
@@ -466,7 +467,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
         if !self.is_match(TT::RightParen) {
             let body_jump = self.emit_jump(OpCode::Jump);
-            let increment_start = self.chunk.size();
+            let increment_start = self.function.size();
 
             self.expression();
             self.emit_byte(OpCode::Pop.into());
@@ -489,7 +490,7 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
 
     fn emit_loop(&mut self, loop_start: usize) {
         self.emit_byte(OpCode::Loop.into());
-        let offset: usize = self.chunk.size() - loop_start + 2;
+        let offset: usize = self.function.size() - loop_start + 2;
         if offset > u16::MAX as usize {
             self.error("Loop body too large")
         }
@@ -502,16 +503,16 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
         self.emit_byte(opcode as u8);
         self.emit_byte(0xff);
         self.emit_byte(0xff);
-        self.chunk.size() - 2
+        self.function.size() - 2
     }
 
     fn finish_jump(&mut self, offset: usize) {
-        let jump = self.chunk.size() - offset - 2;
+        let jump = self.function.size() - offset - 2;
         if jump > u16::MAX as usize {
             self.error("Too much code to jump over.");
         }
-        self.chunk.write_at(offset, ((jump >> 8) & 0xff) as u8);
-        self.chunk.write_at(offset + 1, (jump & 0xff) as u8);
+        self.function.write_at(offset, ((jump >> 8) & 0xff) as u8);
+        self.function.write_at(offset + 1, (jump & 0xff) as u8);
     }
 
     fn and(&mut self, _can_assign: bool) {
@@ -711,11 +712,11 @@ impl<'a, T: Emmitable> Compiler<'a, T> {
     }
 
     fn emit_byte(&mut self, byte: u8) {
-        self.chunk.emit_byte(byte, self.parser.previous.line)
+        self.function.emit_byte(byte, self.parser.previous.line)
     }
 
     fn emit_constant(&mut self, val: Value) {
-        self.chunk.emit_constant(val, self.parser.previous.line)
+        self.function.emit_constant(val, self.parser.previous.line)
     }
 
     fn emit_bytes(&mut self, byte1: OpCode, byte2: u8) {
