@@ -45,6 +45,7 @@ pub trait OpCodable {
     fn read_line(&self, index: usize) -> usize;
 }
 
+#[derive(Debug)]
 pub struct Chunk {
     code: Vec<u8>,
     lines: Vec<usize>,

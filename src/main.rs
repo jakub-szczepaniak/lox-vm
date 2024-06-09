@@ -11,6 +11,7 @@ use vm::*;
 mod chunk;
 mod compiler;
 mod emmitable;
+mod function;
 mod scanner;
 mod token;
 mod value;
