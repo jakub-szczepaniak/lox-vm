@@ -113,6 +113,10 @@ impl Chunk {
 }
 
 impl Emmitable for Chunk {
+    fn initialize() -> Chunk {
+        Chunk::new()
+    }
+
     fn emit_byte(&mut self, byte: u8, line: usize) {
         self.write(byte, line)
     }
@@ -139,6 +143,14 @@ impl Emmitable for Chunk {
     }
     fn jump_offset(&self, offset: usize) -> usize {
         ((self.code[offset] as usize) << 8) | self.code[offset + 1] as usize
+    }
+
+    fn clone(&self) -> Self {
+        Self {
+            code: self.code.clone(),
+            lines: self.lines.clone(),
+            constants: self.constants.clone(),
+        }
     }
 }
 

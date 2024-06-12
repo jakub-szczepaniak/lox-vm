@@ -27,14 +27,12 @@ pub struct VM<T: Emmitable + OpCodable> {
 }
 
 impl<T: Emmitable + OpCodable> VM<T> {
-    pub fn new(t: T) -> Self {
-        let mut script: Function<T> = Function::<T>::new("<script>");
-        script.chunk = Some(t);
+    pub fn new() -> Self {
         Self {
             ip: 0,
             stack: Vec::new(),
             globals: HashMap::new(),
-            function: script,
+            function: Function::<T>::new(""),
         }
     }
 
@@ -42,8 +40,8 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         // need to reset the chunk here!!!
-        let mut compiler = Compiler::new(&mut self.function);
-        compiler.compile(source)?;
+        let mut compiler: Compiler<T> = Compiler::new();
+        self.function = compiler.compile(source)?;
         #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
             self.function.disassemble("Debug", &mut std::io::stdout());
@@ -283,16 +281,4 @@ impl<T: Emmitable + OpCodable> VM<T> {
 mod tests {
     use super::*;
     use rstest::*;
-
-    #[rstest]
-    fn test_run_the_chunk_by_vm() {
-        let mut chunk = Chunk::new();
-        chunk.emit_constant(Value::Number(1.0), 1);
-        chunk.emit_byte(OpCode::Return.into(), 1);
-        let mut vm = VM::new(chunk);
-
-        let result = vm.run();
-
-        assert!(result.is_ok())
-    }
 }

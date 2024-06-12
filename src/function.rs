@@ -5,7 +5,7 @@ use std::{fmt::Display, io::Write};
 pub struct Function<T: Emmitable + OpCodable> {
     arity: u8,
     name: String,
-    pub chunk: Option<T>,
+    pub chunk: T,
 }
 
 impl<T: Emmitable + OpCodable> Display for Function<T> {
@@ -28,7 +28,11 @@ impl<T: Emmitable + OpCodable> PartialOrd for Function<T> {
 
 impl<T: Emmitable + OpCodable> Clone for Function<T> {
     fn clone(&self) -> Self {
-        panic!("Should not clone the function!");
+        Function::<T> {
+            arity: self.arity,
+            name: self.name.clone(),
+            chunk: self.chunk.clone(),
+        }
     }
 }
 
@@ -37,98 +41,60 @@ impl<T: Emmitable + OpCodable> Function<T> {
         Self {
             arity: 0,
             name: name.to_string(),
-            chunk: None,
+            chunk: T::initialize(),
         }
     }
 
     pub fn size(&self) -> usize {
-        if let Some(s) = &self.chunk {
-            s.size()
-        } else {
-            0
-        }
+        self.chunk.size()
     }
 
     pub fn initialize_emiter(&mut self) {
-        if let Some(ref mut s) = self.chunk {
-            s.initialize_emiter()
-        }
+        self.chunk.initialize_emiter()
     }
 
     pub fn finalize_emiter(&mut self) {
-        if let Some(ref mut s) = self.chunk {
-            s.finalize_emiter()
-        }
+        self.chunk.finalize_emiter()
     }
 
     pub fn make_constant(&mut self, name: Value) -> u8 {
-        if let Some(ref mut s) = self.chunk {
-            s.make_constant(name).unwrap()
-        } else {
-            0
-        }
+        self.chunk.make_constant(name).unwrap()
     }
 
     pub fn write_at(&mut self, offset: usize, byte: u8) {
-        if let Some(ref mut s) = self.chunk {
-            s.write_at(offset, byte)
-        }
+        self.chunk.write_at(offset, byte)
     }
 
     pub fn emit_byte(&mut self, byte: u8, line: usize) {
-        if let Some(ref mut s) = self.chunk {
-            s.emit_byte(byte, line)
-        }
+        self.chunk.emit_byte(byte, line)
     }
 
     pub fn emit_constant(&mut self, val: Value, line: usize) {
-        if let Some(ref mut s) = self.chunk {
-            s.emit_constant(val, line)
-        }
+        self.chunk.emit_constant(val, line)
     }
 
     pub fn disassemble(&self, name: &str, output: &mut impl Write) {
-        if let Some(ref s) = self.chunk {
-            s.disassemble(&self.name, output)
-        }
+        self.chunk.disassemble(&self.name, output)
     }
 
     pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) {
-        if let Some(ref s) = self.chunk {
-            s.disassemble_instruction(offset, output);
-        }
+        self.chunk.disassemble_instruction(offset, output);
     }
 
     pub fn read(&self, ip: usize) -> OpCode {
-        if let Some(ref s) = self.chunk {
-            s.read(ip)
-        } else {
-            unreachable!("Should never happen");
-        }
+        self.chunk.read(ip)
     }
 
     pub fn jump_offset(&self, ip: usize) -> usize {
-        if let Some(ref s) = self.chunk {
-            s.jump_offset(ip)
-        } else {
-            unreachable!("Should never happen")
-        }
+        self.chunk.jump_offset(ip)
     }
 
     pub fn read_constant(&self, index: usize) -> Value {
-        if let Some(ref s) = self.chunk {
-            s.read_constant(index)
-        } else {
-            unreachable!("Should never happen")
-        }
+        self.chunk.read_constant(index)
     }
 
     pub fn read_line(&self, index: usize) -> usize {
-        if let Some(ref s) = self.chunk {
-            s.read_line(index)
-        } else {
-            unreachable!("Should never happen")
-        }
+        self.chunk.read_line(index)
     }
 }
 
@@ -166,12 +132,5 @@ mod tests {
         assert!(first <= second);
         assert!(first > second);
         assert!(first >= second);
-    }
-
-    #[rstest]
-    #[should_panic]
-    fn implements_clone() {
-        let first: Function<Chunk> = Function::new("name");
-        let cloned = first.clone();
     }
 }

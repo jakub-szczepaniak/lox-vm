@@ -96,7 +96,7 @@ impl Neg for Value {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValueArray {
     values: Vec<Value>,
 }

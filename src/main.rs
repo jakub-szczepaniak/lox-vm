@@ -28,9 +28,7 @@ struct Cli {
 fn main() {
     // add command line parameter to select the chunk implementation
 
-    let chunk = Chunk::new();
-
-    let mut vm = VM::new(chunk);
+    let mut vm: VM<Chunk> = VM::new();
 
     let cli = Cli::parse();
 

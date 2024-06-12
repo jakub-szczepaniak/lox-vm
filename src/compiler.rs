@@ -90,7 +90,7 @@ impl Precedence {
 }
 
 pub struct Compiler<'a, T: Emmitable + OpCodable> {
-    function: &'a mut Function<T>,
+    function: Function<T>,
     parser: Parser,
     scanner: Scanner,
     rules: Vec<ParseRule<'a, T>>,
@@ -99,7 +99,7 @@ pub struct Compiler<'a, T: Emmitable + OpCodable> {
 }
 
 impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
-    pub fn new(function: &'a mut Function<T>) -> Self {
+    pub fn new() -> Self {
         let mut rules = vec![
             ParseRule::<T> {
                 precedence: Precedence::None,
@@ -188,7 +188,7 @@ impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
 
         Self {
             parser: Parser::default(),
-            function,
+            function: Function::<T>::new("<script>"),
             scanner: Scanner::new(""),
             rules,
             locals: Vec::new(),
@@ -200,7 +200,7 @@ impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
         *self.parser.had_error.borrow()
     }
 
-    pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
+    pub fn compile(&mut self, source: &str) -> Result<Function<T>, InterpretResult> {
         self.initialize();
         self.scanner = Scanner::new(source);
         self.advance();
@@ -216,7 +216,7 @@ impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
         if self.had_error() {
             Err(InterpretResult::CompilerError)
         } else {
-            Ok(())
+            Ok(self.function.clone())
         }
     }
 
