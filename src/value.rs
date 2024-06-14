@@ -1,3 +1,4 @@
+use crate::function::*;
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -7,6 +8,7 @@ pub enum Value {
     Boolean(bool),
     Nil,
     Str(String),
+    Func(Function),
 }
 
 impl Clone for Value {
@@ -16,6 +18,7 @@ impl Clone for Value {
             Value::Number(n) => Value::Number(*n),
             Value::Nil => Value::Nil,
             Value::Str(s) => Value::Str(s.clone()),
+            Value::Func(f) => Value::Func(f.clone()),
         }
     }
 }
@@ -40,6 +43,7 @@ impl Display for Value {
             Value::Number(v) => write!(f, "{v}"),
             Value::Nil => write!(f, "Nil"),
             Value::Str(s) => write!(f, "{s}"),
+            Value::Func(fu) => write!(f, "fn {}", fu.name),
         }
     }
 }

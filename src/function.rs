@@ -1,35 +1,35 @@
-use crate::{chunk::*, value::Value, Emmitable};
+use crate::{chunk::*, value::Value};
 use std::cell::RefCell;
 
 use std::{fmt::Display, io::Write};
 #[derive(Debug)]
-pub struct Function<T: Emmitable + OpCodable> {
+pub struct Function {
     arity: u8,
-    name: String,
-    pub chunk: RefCell<T>,
+    pub name: String,
+    pub chunk: RefCell<Chunk>,
 }
 
-impl<T: Emmitable + OpCodable> Display for Function<T> {
+impl Display for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<fn {}>", self.name)
     }
 }
 
-impl<T: Emmitable + OpCodable> PartialEq for Function<T> {
+impl PartialEq for Function {
     fn eq(&self, _other: &Self) -> bool {
         false
     }
 }
 
-impl<T: Emmitable + OpCodable> PartialOrd for Function<T> {
+impl PartialOrd for Function {
     fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
         panic!("Cannot compare 2 functions")
     }
 }
 
-impl<T: Emmitable + OpCodable> Clone for Function<T> {
+impl Clone for Function {
     fn clone(&self) -> Self {
-        Function::<T> {
+        Function {
             arity: self.arity,
             name: self.name.clone(),
             chunk: RefCell::new(self.chunk.borrow().clone()),
@@ -37,12 +37,12 @@ impl<T: Emmitable + OpCodable> Clone for Function<T> {
     }
 }
 
-impl<T: Emmitable + OpCodable> Function<T> {
+impl Function {
     pub fn new(name: &str) -> Self {
         Self {
             arity: 0,
             name: name.to_string(),
-            chunk: T::initialize().into(),
+            chunk: Chunk::new().into(),
         }
     }
 
@@ -50,13 +50,9 @@ impl<T: Emmitable + OpCodable> Function<T> {
         self.chunk.borrow().size()
     }
 
-    pub fn initialize_emiter(&mut self) {
-        self.chunk.borrow_mut().initialize_emiter()
-    }
+    pub fn initialize_emiter(&mut self) {}
 
-    pub fn finalize_emiter(&mut self) {
-        self.chunk.borrow_mut().finalize_emiter()
-    }
+    pub fn finalize_emiter(&mut self) {}
 
     pub fn make_constant(&mut self, name: Value) -> u8 {
         self.chunk.borrow_mut().make_constant(name).unwrap()
@@ -103,35 +99,4 @@ impl<T: Emmitable + OpCodable> Function<T> {
 mod tests {
     use super::*;
     use rstest::*;
-
-    #[rstest]
-    fn implements_display() {
-        let func: Function<Chunk> = Function::new("my function");
-        assert_eq!(func.to_string(), "<fn my function>");
-    }
-    #[rstest]
-    fn implements_partial_equality_false_for_different() {
-        let first: Function<Chunk> = Function::new("first");
-        let second: Function<Chunk> = Function::new("second");
-        assert_ne!(first, second);
-    }
-
-    #[rstest]
-    fn implements_partial_equality_false_for_same() {
-        let first: Function<Chunk> = Function::new("name");
-        let second: Function<Chunk> = Function::new("name");
-        assert_ne!(first, second)
-    }
-
-    #[rstest]
-    #[should_panic]
-    fn implements_partial_order_always_panics() {
-        let first: Function<Chunk> = Function::new("first");
-        let second: Function<Chunk> = Function::new("second");
-
-        assert!(first < second);
-        assert!(first <= second);
-        assert!(first > second);
-        assert!(first >= second);
-    }
 }

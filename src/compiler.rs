@@ -1,7 +1,4 @@
-use crate::{
-    emmitable::*, function::*, scanner::*, token::*, value::Value, Chunk, InterpretResult,
-    OpCodable, OpCode,
-};
+use crate::{function::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
 use std::cell::RefCell;
 
 #[derive(Debug)]
@@ -18,16 +15,13 @@ pub struct Parser {
     panic_mode: RefCell<bool>,
 }
 #[derive(Copy)]
-struct ParseRule<'a, T>
-where
-    T: Emmitable + OpCodable,
-{
+struct ParseRule<'a> {
     precedence: Precedence,
-    prefix: Option<fn(&mut Compiler<'a, T>, bool)>,
-    infix: Option<fn(&mut Compiler<'a, T>, bool)>,
+    prefix: Option<fn(&mut Compiler<'a>, bool)>,
+    infix: Option<fn(&mut Compiler<'a>, bool)>,
 }
-impl<'a, T: Emmitable + OpCodable> Default for ParseRule<'a, T> {
-    fn default() -> ParseRule<'a, T> {
+impl<'a> Default for ParseRule<'a> {
+    fn default() -> ParseRule<'a> {
         Self {
             precedence: Precedence::None,
             prefix: None,
@@ -35,16 +29,11 @@ impl<'a, T: Emmitable + OpCodable> Default for ParseRule<'a, T> {
         }
     }
 }
-impl<'a, T: Emmitable + OpCodable> Clone for ParseRule<'a, T> {
+impl<'a> Clone for ParseRule<'a> {
     fn clone(&self) -> Self {
-        Self {
-            precedence: self.precedence,
-            prefix: self.prefix,
-            infix: self.infix,
-        }
+        *self
     }
 }
-
 #[derive(PartialEq, Copy, Clone, PartialOrd)]
 enum Precedence {
     None = 0,
@@ -89,98 +78,98 @@ impl Precedence {
     }
 }
 
-pub struct Compiler<'a, T: Emmitable + OpCodable> {
-    function: Function<T>,
+pub struct Compiler<'a> {
+    function: Function,
     parser: Parser,
     scanner: Scanner,
-    rules: Vec<ParseRule<'a, T>>,
+    rules: Vec<ParseRule<'a>>,
     locals: Vec<Local>,
     scope_depth: usize,
 }
 
-impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
+impl<'a> Compiler<'a> {
     pub fn new() -> Self {
         let mut rules = vec![
-            ParseRule::<T> {
+            ParseRule {
                 precedence: Precedence::None,
                 infix: None,
                 prefix: None
             };
             40
         ];
-        rules[TT::LeftParen as usize] = ParseRule::<T> {
+        rules[TT::LeftParen as usize] = ParseRule {
             precedence: Precedence::None,
             prefix: Some(Compiler::grouping),
             infix: None,
         };
-        rules[TT::Minus as usize] = ParseRule::<T> {
+        rules[TT::Minus as usize] = ParseRule {
             precedence: Precedence::Term,
             prefix: Some(Compiler::unary),
             infix: Some(Compiler::unary),
         };
-        rules[TT::Plus as usize] = ParseRule::<T> {
+        rules[TT::Plus as usize] = ParseRule {
             precedence: Precedence::Term,
             prefix: None,
             infix: Some(Compiler::binary),
         };
 
-        rules[TT::Slash as usize] = ParseRule::<T> {
+        rules[TT::Slash as usize] = ParseRule {
             precedence: Precedence::Factor,
             prefix: None,
             infix: Some(Compiler::binary),
         };
 
-        rules[TT::Star as usize] = ParseRule::<T> {
+        rules[TT::Star as usize] = ParseRule {
             precedence: Precedence::Factor,
             prefix: None,
             infix: Some(Compiler::binary),
         };
 
-        rules[TT::Identifier as usize] = ParseRule::<T> {
+        rules[TT::Identifier as usize] = ParseRule {
             prefix: Some(Compiler::variable),
             precedence: Precedence::None,
             infix: None,
         };
-        rules[TT::Number as usize] = ParseRule::<T> {
+        rules[TT::Number as usize] = ParseRule {
             precedence: Precedence::None,
             prefix: Some(Compiler::number),
             infix: None,
         };
-        rules[TT::Constant as usize] = ParseRule::<T> {
+        rules[TT::Constant as usize] = ParseRule {
             precedence: Precedence::None,
             prefix: Some(Compiler::literal),
             infix: None,
         };
-        rules[TT::String as usize] = ParseRule::<T> {
+        rules[TT::String as usize] = ParseRule {
             precedence: Precedence::None,
             prefix: Some(Compiler::string),
             infix: None,
         };
         rules[TT::Bang as usize].prefix = Some(Compiler::unary);
 
-        rules[TT::BangEquals as usize] = ParseRule::<T> {
+        rules[TT::BangEquals as usize] = ParseRule {
             precedence: Precedence::Equality,
             prefix: None,
             infix: Some(Compiler::binary),
         };
-        rules[TT::Equals as usize] = rules[TT::BangEquals as usize].clone();
+        rules[TT::Equals as usize] = rules[TT::BangEquals as usize];
 
-        rules[TT::Greater as usize] = ParseRule::<T> {
+        rules[TT::Greater as usize] = ParseRule {
             prefix: None,
             precedence: Precedence::Comparison,
             infix: Some(Compiler::binary),
         };
-        rules[TT::GreaterEquals as usize] = rules[TT::Greater as usize].clone();
-        rules[TT::Less as usize] = rules[TT::Greater as usize].clone();
-        rules[TT::LessEquals as usize] = rules[TT::Greater as usize].clone();
+        rules[TT::GreaterEquals as usize] = rules[TT::Greater as usize];
+        rules[TT::Less as usize] = rules[TT::Greater as usize];
+        rules[TT::LessEquals as usize] = rules[TT::Greater as usize];
 
-        rules[TT::And as usize] = ParseRule::<T> {
+        rules[TT::And as usize] = ParseRule {
             prefix: None,
             precedence: Precedence::And,
             infix: Some(Compiler::and),
         };
 
-        rules[TT::Or as usize] = ParseRule::<T> {
+        rules[TT::Or as usize] = ParseRule {
             prefix: None,
             precedence: Precedence::Or,
             infix: Some(Compiler::or),
@@ -188,7 +177,7 @@ impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
 
         Self {
             parser: Parser::default(),
-            function: Function::<T>::new("<script>"),
+            function: Function::new("<script>"),
             scanner: Scanner::new(""),
             rules,
             locals: Vec::new(),
@@ -200,7 +189,7 @@ impl<'a, T: Emmitable + OpCodable> Compiler<'a, T> {
         *self.parser.had_error.borrow()
     }
 
-    pub fn compile(&mut self, source: &str) -> Result<Function<T>, InterpretResult> {
+    pub fn compile(&mut self, source: &str) -> Result<Function, InterpretResult> {
         self.initialize();
         self.scanner = Scanner::new(source);
         self.advance();

@@ -4,13 +4,11 @@ use std::{
 };
 
 use crate::chunk::*;
-use crate::emmitable::*;
 use clap::Parser;
 use vm::*;
 
 mod chunk;
 mod compiler;
-mod emmitable;
 mod function;
 mod scanner;
 mod token;
@@ -28,7 +26,7 @@ struct Cli {
 fn main() {
     // add command line parameter to select the chunk implementation
 
-    let mut vm: VM<Chunk> = VM::new();
+    let mut vm = VM::new();
 
     let cli = Cli::parse();
 
@@ -43,7 +41,7 @@ fn main() {
     vm.free();
 }
 
-fn run_file<T: Emmitable + OpCodable>(vm: &mut VM<T>, path: &str) -> io::Result<()> {
+fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
     let buf = std::fs::read_to_string(path)?;
     let res = vm.interpret(&buf);
     match res {
@@ -53,7 +51,7 @@ fn run_file<T: Emmitable + OpCodable>(vm: &mut VM<T>, path: &str) -> io::Result<
     }
 }
 
-fn repl<T: Emmitable + OpCodable>(vm: &mut VM<T>) {
+fn repl(vm: &mut VM) {
     let stdin = io::stdin();
     print!("lox:>");
     let _ = stdout().flush();

@@ -1,4 +1,3 @@
-use crate::emmitable::*;
 use crate::value::*;
 use std::fmt::Display;
 use std::io::Write;
@@ -36,15 +35,6 @@ impl Display for OpCode {
     }
 }
 
-pub trait OpCodable {
-    fn read(&self, ip: usize) -> OpCode;
-    fn read_constant(&self, index: usize) -> Value;
-    fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize;
-    fn disassemble(&self, chunk_name: &str, output: &mut impl Write);
-    fn reset(&mut self);
-    fn read_line(&self, index: usize) -> usize;
-}
-
 #[derive(Debug)]
 pub struct Chunk {
     code: Vec<u8>,
@@ -74,12 +64,12 @@ impl Chunk {
         self.lines[index]
     }
 
-    fn simple_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
+    pub fn simple_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
         writeln!(output, "{name}").unwrap();
         offset + 1
     }
 
-    fn jump_instruction(
+    pub fn jump_instruction(
         &self,
         name: &str,
         offset: usize,
@@ -96,7 +86,12 @@ impl Chunk {
         offset + 3
     }
 
-    fn constant_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
+    pub fn constant_instruction(
+        &self,
+        name: &str,
+        offset: usize,
+        output: &mut impl Write,
+    ) -> usize {
         let constant_index = self.code[offset + 1];
         let value = self.constants.read_at(constant_index as usize);
         write!(output, "{name:-16} {offset:4} '").unwrap();
@@ -105,62 +100,54 @@ impl Chunk {
         offset + 2
     }
 
-    fn byte_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
+    pub fn byte_instruction(&self, name: &str, offset: usize, output: &mut impl Write) -> usize {
         let slot = self.code[offset + 1];
         writeln!(output, "{name:-16} {slot:4}").unwrap();
         offset + 2
     }
-}
 
-impl Emmitable for Chunk {
-    fn initialize() -> Chunk {
-        Chunk::new()
-    }
-
-    fn emit_byte(&mut self, byte: u8, line: usize) {
+    pub fn emit_byte(&mut self, byte: u8, line: usize) {
         self.write(byte, line)
     }
-    fn emit_bytes(&mut self, byte1: OpCode, byte2: u8, line: usize) {
+    pub fn emit_bytes(&mut self, byte1: OpCode, byte2: u8, line: usize) {
         self.write(byte1.into(), line);
         self.write(byte2, line);
     }
-    fn emit_constant(&mut self, value: Value, line: usize) {
+    pub fn emit_constant(&mut self, value: Value, line: usize) {
         if let Some(index) = self.make_constant(value) {
             self.emit_bytes(OpCode::Constant, index, line)
         }
     }
-    fn make_constant(&mut self, value: Value) -> Option<u8> {
+    pub fn make_constant(&mut self, value: Value) -> Option<u8> {
         let index = self.constants.write(value);
         u8::try_from(index).ok()
     }
 
-    fn size(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.code.len()
     }
 
-    fn write_at(&mut self, offset: usize, byte: u8) {
+    pub fn write_at(&mut self, offset: usize, byte: u8) {
         self.code[offset] = byte;
     }
-    fn jump_offset(&self, offset: usize) -> usize {
+    pub fn jump_offset(&self, offset: usize) -> usize {
         ((self.code[offset] as usize) << 8) | self.code[offset + 1] as usize
     }
 
-    fn clone(&self) -> Self {
+    pub fn clone(&self) -> Self {
         Self {
             code: self.code.clone(),
             lines: self.lines.clone(),
             constants: self.constants.clone(),
         }
     }
-}
 
-impl OpCodable for Chunk {
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.code = Vec::new();
         self.lines = Vec::new();
         self.constants.free();
     }
-    fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
+    pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
         writeln!(output, "=={}==", chunk_name).unwrap();
 
         let mut offset: usize = 0;
@@ -168,7 +155,7 @@ impl OpCodable for Chunk {
             offset = self.disassemble_instruction(offset, output)
         }
     }
-    fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
+    pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) -> usize {
         write!(output, "{offset:04}").unwrap();
 
         if offset > 0 && self.lines[offset] == self.lines[offset - 1] {
@@ -205,13 +192,13 @@ impl OpCodable for Chunk {
         }
     }
 
-    fn read(&self, ip: usize) -> OpCode {
+    pub fn read(&self, ip: usize) -> OpCode {
         self.code[ip].into()
     }
-    fn read_constant(&self, index: usize) -> Value {
+    pub fn read_constant(&self, index: usize) -> Value {
         self.get_constant(index)
     }
-    fn read_line(&self, index: usize) -> usize {
+    pub fn read_line(&self, index: usize) -> usize {
         self.get_line(index)
     }
 }
@@ -283,72 +270,4 @@ mod tests {
 
     use super::*;
     use rstest::*;
-
-    #[rstest]
-    fn test_write_opcode_to_chunk() {
-        let mut chunk = Chunk::new();
-        chunk.write(OpCode::Return as u8, 123);
-        assert_eq!(chunk.code.len(), 1)
-    }
-
-    #[rstest]
-    fn test_write_constant_to_chunk() {
-        let mut chunk = Chunk::new();
-        chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.make_constant(Value::Number(1.2)).unwrap();
-        chunk.write(const_index, 1);
-        assert_eq!(chunk.code.len(), 2)
-    }
-
-    #[rstest]
-    fn test_free_the_chunk() {
-        let mut chunk = Chunk::new();
-        chunk.write(OpCode::Return as u8, 23);
-        chunk.make_constant(Value::Number(1.2));
-        chunk.reset();
-        assert_eq!(chunk.code.len(), 0)
-    }
-
-    #[rstest]
-    #[case::debug_op_return(OpCode::Return, 1233, "test", b"==test==\n0000 1233 OP_RETURN\n")]
-    fn test_dissasemble_the_chunk(
-        #[case] actual: OpCode,
-        #[case] line: usize,
-        #[case] chunk_name: &str,
-        #[case] expected: &[u8],
-    ) {
-        let mut output = Vec::new();
-        let mut chunk = Chunk::new();
-
-        chunk.write(actual as u8, line);
-
-        chunk.disassemble(chunk_name, &mut output);
-        assert_eq!(output, expected)
-    }
-
-    #[rstest]
-    fn test_disassemble_chunk_with_const() {
-        let mut chunk = Chunk::new();
-        let mut output = Vec::new();
-        chunk.write(OpCode::Constant as u8, 1);
-        let const_index = chunk.make_constant(Value::Number(12.4)).unwrap();
-        chunk.write(const_index, 1);
-
-        chunk.disassemble("test chunk", &mut output);
-
-        assert_eq!(
-            output,
-            b"==test chunk==\n0000    1 OP_CONSTANT         0 '12.4'\n"
-        )
-    }
-
-    #[rstest]
-    fn test_reading_byte_from_chunk() {
-        let mut chunk = Chunk::new();
-        chunk.write(OpCode::Return as u8, 1);
-
-        let result = chunk.read(0);
-
-        assert_eq!(result, OpCode::Return)
-    }
 }

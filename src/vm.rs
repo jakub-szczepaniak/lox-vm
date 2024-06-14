@@ -1,4 +1,4 @@
-use crate::{chunk::*, compiler::*, emmitable::*, function::*, value::Value};
+use crate::{chunk::*, compiler::*, function::*, value::Value};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -19,20 +19,20 @@ impl Debug for InterpretResult {
     }
 }
 
-pub struct VM<T: Emmitable + OpCodable> {
+pub struct VM {
     ip: usize,
     stack: Vec<Value>,
     globals: HashMap<String, Value>,
-    function: Function<T>,
+    function: Function,
 }
 
-impl<T: Emmitable + OpCodable> VM<T> {
+impl VM {
     pub fn new() -> Self {
         Self {
             ip: 0,
             stack: Vec::new(),
             globals: HashMap::new(),
-            function: Function::<T>::new(""),
+            function: Function::new(""),
         }
     }
 
@@ -40,7 +40,7 @@ impl<T: Emmitable + OpCodable> VM<T> {
 
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         // need to reset the chunk here!!!
-        let mut compiler: Compiler<T> = Compiler::new();
+        let mut compiler: Compiler = Compiler::new();
         self.function = compiler.compile(source)?;
         #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
