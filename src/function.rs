@@ -1,11 +1,12 @@
 use crate::{chunk::*, value::Value, Emmitable};
+use std::cell::RefCell;
 
 use std::{fmt::Display, io::Write};
 #[derive(Debug)]
 pub struct Function<T: Emmitable + OpCodable> {
     arity: u8,
     name: String,
-    pub chunk: T,
+    pub chunk: RefCell<T>,
 }
 
 impl<T: Emmitable + OpCodable> Display for Function<T> {
@@ -21,7 +22,7 @@ impl<T: Emmitable + OpCodable> PartialEq for Function<T> {
 }
 
 impl<T: Emmitable + OpCodable> PartialOrd for Function<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
         panic!("Cannot compare 2 functions")
     }
 }
@@ -31,7 +32,7 @@ impl<T: Emmitable + OpCodable> Clone for Function<T> {
         Function::<T> {
             arity: self.arity,
             name: self.name.clone(),
-            chunk: self.chunk.clone(),
+            chunk: RefCell::new(self.chunk.borrow().clone()),
         }
     }
 }
@@ -41,60 +42,60 @@ impl<T: Emmitable + OpCodable> Function<T> {
         Self {
             arity: 0,
             name: name.to_string(),
-            chunk: T::initialize(),
+            chunk: T::initialize().into(),
         }
     }
 
     pub fn size(&self) -> usize {
-        self.chunk.size()
+        self.chunk.borrow().size()
     }
 
     pub fn initialize_emiter(&mut self) {
-        self.chunk.initialize_emiter()
+        self.chunk.borrow_mut().initialize_emiter()
     }
 
     pub fn finalize_emiter(&mut self) {
-        self.chunk.finalize_emiter()
+        self.chunk.borrow_mut().finalize_emiter()
     }
 
     pub fn make_constant(&mut self, name: Value) -> u8 {
-        self.chunk.make_constant(name).unwrap()
+        self.chunk.borrow_mut().make_constant(name).unwrap()
     }
 
     pub fn write_at(&mut self, offset: usize, byte: u8) {
-        self.chunk.write_at(offset, byte)
+        self.chunk.borrow_mut().write_at(offset, byte)
     }
 
     pub fn emit_byte(&mut self, byte: u8, line: usize) {
-        self.chunk.emit_byte(byte, line)
+        self.chunk.borrow_mut().emit_byte(byte, line)
     }
 
     pub fn emit_constant(&mut self, val: Value, line: usize) {
-        self.chunk.emit_constant(val, line)
+        self.chunk.borrow_mut().emit_constant(val, line)
     }
 
     pub fn disassemble(&self, name: &str, output: &mut impl Write) {
-        self.chunk.disassemble(&self.name, output)
+        self.chunk.borrow().disassemble(&self.name, output)
     }
 
     pub fn disassemble_instruction(&self, offset: usize, output: &mut impl Write) {
-        self.chunk.disassemble_instruction(offset, output);
+        self.chunk.borrow().disassemble_instruction(offset, output);
     }
 
     pub fn read(&self, ip: usize) -> OpCode {
-        self.chunk.read(ip)
+        self.chunk.borrow().read(ip)
     }
 
     pub fn jump_offset(&self, ip: usize) -> usize {
-        self.chunk.jump_offset(ip)
+        self.chunk.borrow().jump_offset(ip)
     }
 
     pub fn read_constant(&self, index: usize) -> Value {
-        self.chunk.read_constant(index)
+        self.chunk.borrow().read_constant(index)
     }
 
     pub fn read_line(&self, index: usize) -> usize {
-        self.chunk.read_line(index)
+        self.chunk.borrow().read_line(index)
     }
 }
 
