@@ -1,4 +1,4 @@
-use crate::{chunk::*, compiler::*, function::*, value::Value};
+use crate::{compiler::*, function::*, opcode::*, value::Value};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::Debug;

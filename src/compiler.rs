@@ -1,4 +1,4 @@
-use crate::{function::*, scanner::*, token::*, value::Value, InterpretResult, OpCode};
+use crate::{function::*, opcode::OpCode, scanner::*, token::*, value::Value, InterpretResult};
 use std::cell::RefCell;
 
 #[derive(Debug)]

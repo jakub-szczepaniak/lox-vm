@@ -1,4 +1,4 @@
-use crate::{chunk::*, value::Value};
+use crate::{chunk::*, opcode::OpCode, value::Value};
 use std::cell::RefCell;
 
 use std::{fmt::Display, io::Write};
