@@ -73,7 +73,7 @@ impl VM {
         self.frames.push(CallFrame {
             func_index: 0,
             ip: 0,
-            slot: 0,
+            slot: 1,
         });
         self.stack.push(Value::Func(function));
         self.run()
@@ -116,11 +116,13 @@ impl VM {
                 }
                 OpCode::GetLocal => {
                     let slot = self.read_byte() as usize;
-                    self.push(self.stack[slot].clone());
+                    let slot_offset = self.current_frame().slot;
+                    self.push(self.stack[slot + slot_offset].clone());
                 }
                 OpCode::SetLocal => {
                     let slot = self.read_byte() as usize;
-                    self.stack[slot] = self.peek(0).clone();
+                    let slot_offset = self.current_frame().slot;
+                    self.stack[slot + slot_offset] = self.peek(0).clone();
                 }
                 OpCode::DefineGlobal => {
                     let constant = self.read_constant().clone();
