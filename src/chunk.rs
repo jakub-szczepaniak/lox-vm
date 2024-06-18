@@ -2,7 +2,7 @@ use crate::opcode::*;
 use crate::value::*;
 use std::io::Write;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chunk {
     code: Vec<u8>,
     lines: Vec<usize>,

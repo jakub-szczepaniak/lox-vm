@@ -50,6 +50,10 @@ impl Function {
         self.chunk.borrow().size()
     }
 
+    pub fn chunk(&self) -> Chunk {
+        self.chunk.borrow().clone()
+    }
+
     pub fn initialize_emiter(&mut self) {}
 
     pub fn finalize_emiter(&mut self) {}
@@ -70,7 +74,7 @@ impl Function {
         self.chunk.borrow_mut().emit_constant(val, line)
     }
 
-    pub fn disassemble(&self, name: &str, output: &mut impl Write) {
+    pub fn disassemble(&self, output: &mut impl Write) {
         self.chunk.borrow().disassemble(&self.name, output)
     }
 
