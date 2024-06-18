@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::io::Write;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum OpCode {

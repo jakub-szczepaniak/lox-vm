@@ -109,11 +109,6 @@ impl Chunk {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.code = Vec::new();
-        self.lines = Vec::new();
-        self.constants.free();
-    }
     pub fn disassemble(&self, chunk_name: &str, output: &mut impl Write) {
         writeln!(output, "=={}==", chunk_name).unwrap();
 

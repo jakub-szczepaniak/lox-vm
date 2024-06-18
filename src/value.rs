@@ -110,15 +110,10 @@ impl ValueArray {
         Self { values: Vec::new() }
     }
 
-    //returns the index of value that was inserted
     pub fn write(&mut self, value: Value) -> usize {
         let count = self.values.len();
         self.values.push(value);
         count
-    }
-
-    pub fn free(&mut self) {
-        self.values = Vec::new();
     }
 
     pub fn read_at(&self, index: usize) -> Value {

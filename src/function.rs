@@ -50,10 +50,6 @@ impl Function {
         self.chunk.borrow().size()
     }
 
-    pub fn chunk(&self) -> Chunk {
-        self.chunk.borrow().clone()
-    }
-
     pub fn initialize_emiter(&mut self) {}
 
     pub fn finalize_emiter(&mut self) {}

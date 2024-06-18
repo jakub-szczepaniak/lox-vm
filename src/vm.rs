@@ -19,36 +19,71 @@ impl Debug for InterpretResult {
     }
 }
 
-pub struct VM {
+struct CallFrame {
+    func_index: usize,
     ip: usize,
+    slot: usize,
+}
+
+impl CallFrame {
+    pub fn inc(&mut self, amount: usize) {
+        self.ip += amount;
+    }
+
+    pub fn dec(&mut self, amount: usize) {
+        self.ip -= amount;
+    }
+}
+
+pub struct VM {
     stack: Vec<Value>,
     globals: HashMap<String, Value>,
-    function: Function,
+    frames: Vec<CallFrame>,
 }
 
 impl VM {
     pub fn new() -> Self {
         Self {
-            ip: 0,
             stack: Vec::new(),
             globals: HashMap::new(),
-            function: Function::new(""),
+            frames: Vec::new(),
         }
     }
 
     pub fn free(&self) {}
 
+    fn current(&mut self) -> &Function {
+        let frame = self.frames.last().unwrap();
+
+        if let Value::Func(f) = &self.stack[frame.func_index] {
+            f
+        } else {
+            panic!("Could not find function !")
+        }
+    }
+
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         // need to reset the chunk here!!!
         let mut compiler: Compiler = Compiler::new();
-        self.function = compiler.compile(source)?;
+        let function = compiler.compile(source)?;
         #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
-            self.function.disassemble("Debug", &mut std::io::stdout());
+            function.disassemble(&mut std::io::stdout());
         }
-
-        self.ip = 0;
+        self.frames.push(CallFrame {
+            func_index: 0,
+            ip: 0,
+            slot: 0,
+        });
+        self.stack.push(Value::Func(function));
         self.run()
+    }
+    fn ip(&self) -> usize {
+        let frame = self.frames.last().unwrap();
+        frame.ip
+    }
+    fn current_frame(&mut self) -> &mut CallFrame {
+        self.frames.last_mut().unwrap()
     }
 
     fn run(&mut self) -> Result<(), InterpretResult> {
@@ -61,8 +96,9 @@ impl VM {
                     write!(&mut std::io::stdout(), "[ {value} ]").unwrap();
                 }
                 writeln!(&mut std::io::stdout()).unwrap();
-                self.function
-                    .disassemble_instruction(self.ip, &mut std::io::stdout());
+                let ip = self.ip();
+                self.current()
+                    .disassemble_instruction(ip, &mut std::io::stdout());
             }
             let instruction = self.read_opcode();
             match instruction {
@@ -98,16 +134,16 @@ impl VM {
                 OpCode::JumpIfFalse => {
                     let offset = self.read_short();
                     if self.peek(0).is_falsy() {
-                        self.ip += offset;
+                        self.current_frame().inc(offset);
                     }
                 }
                 OpCode::Jump => {
                     let offset = self.read_short();
-                    self.ip += offset
+                    self.current_frame().inc(offset)
                 }
                 OpCode::Loop => {
                     let offset: usize = self.read_short();
-                    self.ip -= offset;
+                    self.current_frame().dec(offset)
                 }
 
                 OpCode::SetGlobal => {
@@ -229,31 +265,36 @@ impl VM {
     }
 
     fn read_opcode(&mut self) -> OpCode {
-        let result = self.function.read(self.ip);
-        self.ip += 1;
+        let ip = self.ip();
+        let result = self.current().read(ip);
+        self.current_frame().inc(1);
         result
     }
 
     fn read_byte(&mut self) -> u8 {
-        let result = self.function.read(self.ip).into();
-        self.ip += 1;
+        let ip = self.ip();
+        let result = self.current().read(ip).into();
+        self.current_frame().inc(1);
         result
     }
 
     fn read_short(&mut self) -> usize {
-        let short = self.function.jump_offset(self.ip);
-        self.ip += 2;
+        let ip = self.ip();
+        let short = self.current().jump_offset(ip);
+        self.current_frame().inc(2);
         short
     }
 
     fn read_constant(&mut self) -> Value {
-        let index = self.function.read(self.ip) as usize;
-        self.ip += 1;
-        self.function.read_constant(index)
+        let ip = self.ip();
+        let index = self.current().read(ip) as usize;
+        self.current_frame().inc(1);
+        self.current().read_constant(index)
     }
 
     fn runtime_error(&mut self, message: &str) -> Result<(), InterpretResult> {
-        let line = self.function.read_line(self.ip - 1);
+        let ip = self.ip();
+        let line = self.current().read_line(ip - 1);
 
         eprintln!("{}", message);
         eprintln!("[line {}] in script", line);
