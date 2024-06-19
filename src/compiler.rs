@@ -231,7 +231,9 @@ impl<'a> Compiler<'a> {
     }
 
     fn declaration(&mut self) {
-        if self.is_match(TT::Var) {
+        if self.is_match(TT::Fun) {
+            self.fun_declaration();
+        } else if self.is_match(TT::Var) {
             self.var_declaration();
         } else {
             self.statement();
@@ -240,6 +242,15 @@ impl<'a> Compiler<'a> {
             self.synchronize();
         }
     }
+    fn fun_declaration(&mut self) {
+        let global = self.parse_variable("Expected function name");
+        self.mark_initialized();
+        self.function();
+        self.define_variable(global);
+    }
+
+    fn function(&mut self) {}
+
     fn block(&mut self) {
         while !self.check(TT::RightBracket) && !self.check(TT::EndOfFile) {
             self.declaration();
@@ -387,6 +398,9 @@ impl<'a> Compiler<'a> {
     }
 
     fn mark_initialized(&mut self) {
+        if self.scope_depth == 0 {
+            return;
+        }
         let index = self.locals.len() - 1;
         self.locals[index].depth = Some(self.scope_depth);
     }
