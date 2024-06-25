@@ -16,13 +16,13 @@ pub struct Parser {
     panic_mode: RefCell<bool>,
 }
 #[derive(Copy)]
-struct ParseRule<'a> {
+struct ParseRule {
     precedence: Precedence,
-    prefix: Option<fn(&mut Compiler<'a>, bool)>,
-    infix: Option<fn(&mut Compiler<'a>, bool)>,
+    prefix: Option<fn(&mut Compiler, bool)>,
+    infix: Option<fn(&mut Compiler, bool)>,
 }
-impl<'a> Default for ParseRule<'a> {
-    fn default() -> ParseRule<'a> {
+impl Default for ParseRule {
+    fn default() -> ParseRule {
         Self {
             precedence: Precedence::None,
             prefix: None,
@@ -30,7 +30,7 @@ impl<'a> Default for ParseRule<'a> {
         }
     }
 }
-impl<'a> Clone for ParseRule<'a> {
+impl Clone for ParseRule {
     fn clone(&self) -> Self {
         *self
     }
@@ -101,14 +101,14 @@ impl CompilationResult {
     }
 }
 
-pub struct Compiler<'a> {
+pub struct Compiler {
     parser: Parser,
     scanner: Scanner,
-    rules: Vec<ParseRule<'a>>,
+    rules: Vec<ParseRule>,
     result: CompilationResult,
 }
 
-impl<'a> Compiler<'a> {
+impl Compiler {
     pub fn new() -> Self {
         let mut rules = vec![
             ParseRule {
