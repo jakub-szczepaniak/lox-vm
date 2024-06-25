@@ -1,7 +1,8 @@
 use crate::{function::*, opcode::OpCode, scanner::*, token::*, value::Value, InterpretResult};
 use std::cell::RefCell;
+use std::io::Write;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Local {
     name: Token,
     depth: Option<usize>,
@@ -77,14 +78,37 @@ impl Precedence {
         (precedence + 1).into()
     }
 }
+#[derive(Clone)]
+pub struct CompilationResult {
+    pub function: Function,
+    pub scope_depth: usize,
+    pub locals: Vec<Local>,
+}
+
+impl Default for CompilationResult {
+    fn default() -> Self {
+        Self {
+            function: Function::new("<script>"),
+            scope_depth: 0,
+            locals: Vec::new(),
+        }
+    }
+}
+
+impl CompilationResult {
+    fn set_result(&mut self, func: Function) {
+        self.function = func;
+    }
+    pub fn disassemble(&self, output: &mut impl Write) {
+        self.function.disassemble(output);
+    }
+}
 
 pub struct Compiler<'a> {
-    function: Function,
     parser: Parser,
     scanner: Scanner,
     rules: Vec<ParseRule<'a>>,
-    locals: Vec<Local>,
-    scope_depth: usize,
+    result: CompilationResult,
 }
 
 impl<'a> Compiler<'a> {
@@ -177,11 +201,9 @@ impl<'a> Compiler<'a> {
 
         Self {
             parser: Parser::default(),
-            function: Function::new("<script>"),
             scanner: Scanner::new(""),
             rules,
-            locals: Vec::new(),
-            scope_depth: 0,
+            result: CompilationResult::default(),
         }
     }
 
@@ -189,7 +211,7 @@ impl<'a> Compiler<'a> {
         *self.parser.had_error.borrow()
     }
 
-    pub fn compile(&mut self, source: &str) -> Result<Function, InterpretResult> {
+    pub fn compile(&mut self, source: &str) -> Result<CompilationResult, InterpretResult> {
         self.initialize();
         self.scanner = Scanner::new(source);
         self.advance();
@@ -205,16 +227,16 @@ impl<'a> Compiler<'a> {
         if self.had_error() {
             Err(InterpretResult::CompilerError)
         } else {
-            Ok(self.function.clone())
+            Ok(self.result.clone())
         }
     }
 
     fn initialize(&mut self) {
-        self.function.initialize_emiter()
+        self.result.function.initialize_emiter()
     }
 
     fn finalize(&mut self) {
-        self.function.finalize_emiter();
+        self.result.function.finalize_emiter();
     }
 
     fn advance(&mut self) {
@@ -260,18 +282,18 @@ impl<'a> Compiler<'a> {
     }
 
     fn begin_scope(&mut self) {
-        self.scope_depth += 1;
+        self.result.scope_depth += 1;
     }
 
     fn end_scope(&mut self) {
-        self.scope_depth -= 1;
+        self.result.scope_depth -= 1;
 
-        let mut index = self.locals.len();
+        let mut index = self.result.locals.len();
         while index > 0 {
             index -= 1;
-            if self.locals[index].depth.unwrap() > self.scope_depth {
+            if self.result.locals[index].depth.unwrap() > self.result.scope_depth {
                 self.emit_byte(OpCode::Pop.into());
-                self.locals.remove(index);
+                self.result.locals.remove(index);
             }
         }
     }
@@ -312,7 +334,7 @@ impl<'a> Compiler<'a> {
         self.consume(TT::Identifier, error_message);
 
         self.declare_variable();
-        if self.scope_depth == 0 {
+        if self.result.scope_depth == 0 {
             let name = self.parser.previous.lexeme.clone();
             self.identifier_constant(&name)
         } else {
@@ -321,10 +343,10 @@ impl<'a> Compiler<'a> {
     }
 
     fn declare_variable(&mut self) {
-        if self.scope_depth != 0 {
+        if self.result.scope_depth != 0 {
             let name = self.parser.previous.lexeme.clone();
-            for x in self.locals.iter().rev() {
-                if x.depth.unwrap() < self.scope_depth {
+            for x in self.result.locals.iter().rev() {
+                if x.depth.unwrap() < self.result.scope_depth {
                     break;
                 }
                 if x.name.lexeme == name {
@@ -339,7 +361,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn add_local(&mut self, token: Token) {
-        if self.locals.len() >= 256 {
+        if self.result.locals.len() >= 256 {
             self.error("Too many local variables in the scope!");
             return;
         }
@@ -347,7 +369,7 @@ impl<'a> Compiler<'a> {
             name: token,
             depth: None,
         };
-        self.locals.push(local);
+        self.result.locals.push(local);
     }
 
     fn variable(&mut self, can_assign: bool) {
@@ -374,23 +396,25 @@ impl<'a> Compiler<'a> {
     }
 
     fn resolve_local(&mut self, name: &str) -> Option<u8> {
-        for (index, value) in self.locals.iter().rev().enumerate() {
+        for (index, value) in self.result.locals.iter().rev().enumerate() {
             if value.name.lexeme == name {
                 if value.depth.is_none() {
                     self.error("Cannot read local variable in its own initializer.")
                 }
-                return Some((self.locals.len() - 1 - index) as u8);
+                return Some((self.result.locals.len() - 1 - index) as u8);
             }
         }
         None
     }
 
     fn identifier_constant(&mut self, name: &str) -> u8 {
-        self.function.make_constant(Value::Str(name.to_string()))
+        self.result
+            .function
+            .make_constant(Value::Str(name.to_string()))
     }
 
     fn define_variable(&mut self, index: u8) {
-        if self.scope_depth == 0 {
+        if self.result.scope_depth == 0 {
             self.emit_bytes(OpCode::DefineGlobal, index);
         } else {
             self.mark_initialized();
@@ -398,11 +422,11 @@ impl<'a> Compiler<'a> {
     }
 
     fn mark_initialized(&mut self) {
-        if self.scope_depth == 0 {
+        if self.result.scope_depth == 0 {
             return;
         }
-        let index = self.locals.len() - 1;
-        self.locals[index].depth = Some(self.scope_depth);
+        let index = self.result.locals.len() - 1;
+        self.result.locals[index].depth = Some(self.result.scope_depth);
     }
 
     fn print_statement(&mut self) {
@@ -434,7 +458,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn while_statement(&mut self) {
-        let loop_start: usize = self.function.size();
+        let loop_start: usize = self.result.function.size();
         self.consume(TT::LeftParen, "Expect '(' after 'while'.");
         self.expression();
         self.consume(TT::RightParen, "Expected ')' after condition.");
@@ -457,7 +481,7 @@ impl<'a> Compiler<'a> {
         } else {
             self.expression_statement();
         }
-        let mut loop_start: usize = self.function.size();
+        let mut loop_start: usize = self.result.function.size();
         let exit_jump = if self.is_match(TT::Semicolon) {
             None
         } else {
@@ -470,7 +494,7 @@ impl<'a> Compiler<'a> {
 
         if !self.is_match(TT::RightParen) {
             let body_jump = self.emit_jump(OpCode::Jump);
-            let increment_start = self.function.size();
+            let increment_start = self.result.function.size();
 
             self.expression();
             self.emit_byte(OpCode::Pop.into());
@@ -493,7 +517,7 @@ impl<'a> Compiler<'a> {
 
     fn emit_loop(&mut self, loop_start: usize) {
         self.emit_byte(OpCode::Loop.into());
-        let offset: usize = self.function.size() - loop_start + 2;
+        let offset: usize = self.result.function.size() - loop_start + 2;
         if offset > u16::MAX as usize {
             self.error("Loop body too large")
         }
@@ -506,16 +530,20 @@ impl<'a> Compiler<'a> {
         self.emit_byte(opcode as u8);
         self.emit_byte(0xff);
         self.emit_byte(0xff);
-        self.function.size() - 2
+        self.result.function.size() - 2
     }
 
     fn finish_jump(&mut self, offset: usize) {
-        let jump = self.function.size() - offset - 2;
+        let jump = self.result.function.size() - offset - 2;
         if jump > u16::MAX as usize {
             self.error("Too much code to jump over.");
         }
-        self.function.write_at(offset, ((jump >> 8) & 0xff) as u8);
-        self.function.write_at(offset + 1, (jump & 0xff) as u8);
+        self.result
+            .function
+            .write_at(offset, ((jump >> 8) & 0xff) as u8);
+        self.result
+            .function
+            .write_at(offset + 1, (jump & 0xff) as u8);
     }
 
     fn and(&mut self, _can_assign: bool) {
@@ -715,11 +743,15 @@ impl<'a> Compiler<'a> {
     }
 
     fn emit_byte(&mut self, byte: u8) {
-        self.function.emit_byte(byte, self.parser.previous.line)
+        self.result
+            .function
+            .emit_byte(byte, self.parser.previous.line)
     }
 
     fn emit_constant(&mut self, val: Value) {
-        self.function.emit_constant(val, self.parser.previous.line)
+        self.result
+            .function
+            .emit_constant(val, self.parser.previous.line)
     }
 
     fn emit_bytes(&mut self, byte1: OpCode, byte2: u8) {

@@ -65,17 +65,17 @@ impl VM {
     pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
         // need to reset the chunk here!!!
         let mut compiler: Compiler = Compiler::new();
-        let function = compiler.compile(source)?;
+        let compiled = compiler.compile(source)?;
         #[cfg(feature = "debug_print_code")]
         if !compiler.had_error() {
-            function.disassemble(&mut std::io::stdout());
+            compiled.disassemble(&mut std::io::stdout());
         }
         self.frames.push(CallFrame {
             func_index: 0,
             ip: 0,
             slot: 1,
         });
-        self.stack.push(Value::Func(function));
+        self.stack.push(Value::Func(compiled.function));
         self.run()
     }
     fn ip(&self) -> usize {
