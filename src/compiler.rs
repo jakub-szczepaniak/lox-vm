@@ -96,9 +96,6 @@ impl Default for CompilationResult {
 }
 
 impl CompilationResult {
-    fn set_result(&mut self, func: Function) {
-        self.function = func;
-    }
     pub fn disassemble(&self, output: &mut impl Write) {
         self.function.disassemble(output);
     }
