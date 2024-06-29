@@ -1,6 +1,7 @@
 use crate::{function::*, opcode::OpCode, scanner::*, token::*, value::Value, InterpretResult};
 use std::cell::RefCell;
 use std::io::Write;
+use std::mem;
 
 #[derive(Clone, Debug)]
 pub struct Local {
@@ -83,6 +84,7 @@ pub struct CompilationResult {
     pub function: Function,
     pub scope_depth: usize,
     pub locals: Vec<Local>,
+    pub parent: Option<usize>,
 }
 
 impl Default for CompilationResult {
@@ -91,6 +93,7 @@ impl Default for CompilationResult {
             function: Function::new("<script>"),
             scope_depth: 0,
             locals: Vec::new(),
+            parent: None,
         }
     }
 }
@@ -268,7 +271,21 @@ impl Compiler {
         self.define_variable(global);
     }
 
-    fn function(&mut self) {}
+    fn function(&mut self) {
+        let old_result = mem::take(&mut self.result);
+        self.begin_scope();
+
+        self.end_compiler();
+
+        self.result = mem::replace(&mut self.result, old_result.clone());
+        if !*self.parser.had_error.borrow() {
+            let func = self
+                .result
+                .function
+                .make_constant(Value::Func(old_result.function.clone()));
+            self.emit_bytes(OpCode::Constant, func)
+        }
+    }
 
     fn block(&mut self) {
         while !self.check(TT::RightBracket) && !self.check(TT::EndOfFile) {
